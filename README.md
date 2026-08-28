@@ -26,6 +26,18 @@ Two pieces of upstream identity are kept on purpose, because downstream tooling 
 
 Both are pinned by tests. Changing either requires a coordinated change in [`austraits`](https://github.com/traitecoevo/austraits); see `PLAN.md`.
 
+## Related repositories
+
+| Repo | What it is |
+|---|---|
+| `responses.build` | This repo: the engine |
+| [`AusFizz`](https://github.com/traitecoevo/AusFizz) | The compilation intended for public release, and the source of truth for shared configuration |
+| [`ausfizz-private`](https://github.com/traitecoevo/ausfizz-private) | Restricted datasets that cannot be released yet, built by the same pipeline and merged on demand |
+
+Issues for all three are tracked on the [AusFizz board (#19)](https://github.com/orgs/traitecoevo/projects/19), not the family-wide AusTraits board.
+
+Splitting the data across two repositories is lossless: building AusFizz's datasets in two groups and binding them with `austraits::bind_databases()` reproduces every table of a single combined build exactly. The merged object keeps only one `metadata` block.
+
 ## Installation
 
 ```r
