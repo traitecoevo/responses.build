@@ -269,8 +269,19 @@ write_metadata <- function(data, path, style_code = FALSE) {
     y["identifiers"] <- NA
   }
 
-  y <- y[c("source", "contributors", "dataset", "identifiers", "locations", "contexts", "traits",
-               "substitutions", "taxonomic_updates", "exclude_observations", "questions")]
+  # `measurements` is the Stage 3 form of `traits`; both are written so a
+  # repository can hold either. Sections a file does not have come back NULL
+  # and are dropped, so listing both is safe.
+  sections <- c("source", "contributors", "dataset", "identifiers", "locations",
+                "contexts", "treatments", "measurements", "traits",
+                "substitutions", "taxonomic_updates", "exclude_observations",
+                "questions")
+
+  # Anything the file carries that is not in the canonical order is kept rather
+  # than silently dropped -- losing a block on a round-trip is worse than an
+  # unexpected key order.
+  extra <- setdiff(names(y), sections)
+  y <- y[c(intersect(sections, names(y)), extra)]
 
 
   txt <- yaml::as.yaml(y, column.major = FALSE, indent = 2) %>%

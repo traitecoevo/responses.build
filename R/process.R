@@ -8,6 +8,10 @@
 #' in the `remake.yml` file.
 #'
 #' @param filename_metadata Metadata yaml file for a given study
+#' @param instruments Instrument column maps, from [get_instruments()]. Used to
+#' resolve a `measurements:` block that names an instrument.
+#' @param data_types Data type definitions, from [get_data_types()]. Used to
+#' check that a `measurements:` block names a data type that exists.
 #' @param definitions Definitions read in from the `traits.yml`
 #'
 #' @return List with `dataset_id`, `metadata`, `definitions` and `unit_conversion_functions`
@@ -23,12 +27,21 @@
 #' }
 dataset_configure <- function(
   filename_metadata,
-  definitions) {
+  definitions,
+  instruments = get_instruments(),
+  data_types = get_data_types()) {
 
   dataset_id <- basename(dirname(filename_metadata))
 
   # Read metadata
   metadata <- read_metadata(filename_metadata)
+
+  # A `measurements:` block is desugared into the `traits:` list the rest of
+  # the build understands, so nothing downstream needs to know which form the
+  # dataset was written in. See R/measurements.R.
+  metadata <- metadata_expand_measurements(
+    metadata, instruments, data_types, dataset_id
+  )
 
   # Table of trait_mapping
   trait_mapping <-

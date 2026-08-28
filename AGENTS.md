@@ -25,6 +25,13 @@ The upstream data model called the first row "traits", which is why the AusFizz 
 **Naming rule, everywhere:** identifiers are `snake_case`, carry no units, spaces or brackets, and
 units live in a `unit` field beside the value.
 
+### How a dataset says what it measured
+
+`measurements:` — one block per data file — desugars in `dataset_configure()` into the `traits:` list
+the rest of the build understands (`R/measurements.R`). Order matters inside that expansion:
+instrument profile → `column_suffix` → `use` → `variables_extra`. The first two describe the
+*profile*; extras are written out in full and must come last, or `use` silently filters them away.
+
 ### The curve tables
 
 `curves` and `curve_points` are the point of this package. A curve is identified by

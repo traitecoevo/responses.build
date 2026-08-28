@@ -142,15 +142,48 @@ curve_points  dataset_id, curve_id, point_id, <one column per variable>
 - **`Drake_2015` has three raw CSVs and no `metadata.yml`.** It is board issue #3 waiting to happen, and the reason `remake.yml` carries 31 targets for 32 data folders.
 - **`n_points` is character**, like every other column of every other table in this data model, so a written CSV reads back as what the database held.
 
-### Stage 3 — metadata schema v2, and migrate all 30
+### Stage 3 — metadata schema v2, and migrate all 30 — **done, with one part deferred**
 
-`traits:` is replaced by `measurements:` — one block per data file, which is what makes multi-data-type studies dissolve rather than get patched.
+`traits:` is replaced by `measurements:` — one block per data file, desugared in `dataset_configure()` into the `traits:` list the rest of the build understands. A dataset names its instrument instead of restating twenty column mappings, and writes its methods paragraph once instead of once per variable.
 
-- `methods` moves from per-trait to per-`measurements` block: 369 lines → ~34.
-- The 12 constants become `dataset:` fields with controlled vocabularies in the schema (2–9 distinct values each, so each vocabulary is small and enumerable). Roughly 100 unqualified `custom_R_code` call sites disappear, which Stage 5 depends on.
-- `contexts:` keeps only genuine contexts — things that vary within a dataset and are not treatments.
-- One migration script, `scripts/migrate-metadata-v2.R`, run once, output committed. Datasets it cannot handle it leaves alone and reports.
-- Fix `collection_date` here. The parser cannot distinguish `3/12/2010` from `12/3/2010`, so **confirm each dataset's convention against its source before converting** — do not let the migration guess.
+```yaml
+measurements:
+- data_type: ACi-T
+  instrument: Li6400 IRGA
+  use: [A, gsw, Ci, VPDleaf, Tair, Tleaf, CO2r, CO2s, Qin]
+  methods: |
+    Each Anet-Ci response curve started with a steady-state measurement ...
+  variables_extra:
+  - variable: leaf_temperature_setpoint
+    var_in: temp
+    unit_in: C
+```
+
+`column_suffix` closes **board #3**: a study measuring two data types in one spreadsheet writes `Photo` and `Photo_survey_Amax`, and a second block says that in one line instead of duplicating nineteen mappings.
+
+**Result: 8,872 metadata lines → 5,832 (34% smaller), 386 mappings → 38 measurement blocks, 36 methods entries → 36 written once instead of 386 times.** The gate passed strictly: every table — `traits`, `curves`, `curve_points`, `contexts`, `methods`, `excluded_data`, `locations`, `taxa`, `definitions`, `metadata` — is identical before and after.
+
+#### Deferred: the 12 descriptors stay in `contexts:` for now
+
+This plan said they would become `dataset:` fields, and estimated 2,500–3,000 lines. **They did not, and the honest number is 5,832.**
+
+Measured while implementing: reversing a dataset's `contexts:` list leaves `curve_points` byte-identical and the curve-to-point grouping identical, but **permutes the integer labels of `treatment_context_id`** — 03 and 02 swap. The partition is the same; only the names of its parts move. Promoting the descriptors out of `contexts:` reorders that list, so it relabels ids.
+
+Those labels are published output that a saved analysis may join on. A migration whose whole premise is "nothing changes" must not smuggle them, so this half is deferred rather than forced.
+
+**The right fix is upstream of the migration: context ids should not depend on the order somebody happened to write YAML in.** `process_generate_id()` already sorts for `observation_id`; the context ids do not. That is the same class of defect as the locale-collation bug upstream already fixed — a build that depends on incidental input order. Make ids order-independent, accept the one-time relabelling deliberately and with a NEWS entry, and the descriptors can then move for free. **Its own stage, its own decision.**
+
+#### Two bugs the gate caught, which review would not have
+
+- **`use:` was applied after `variables_extra` was merged**, so it filtered out every variable the instrument profile did not cover. `excluded_data` fell from 14,782 rows to 1,029 and `methods` from 350 to 293. `use` and `column_suffix` describe the *profile*; extras are written out in full and come after.
+- **Coverage was decided on `var_in` and `unit_in` alone**, so a mapping overriding `value_type` or `replicates` was folded into `use:` and silently took the defaults — 14 entries in `Bloomfield_2014_a` went from `mean`/5 replicates to `raw`/1. A mapping is covered only if it also takes every default.
+
+Both were invisible in the migrated YAML and obvious in the diff of the built object. This is what the invariant is for.
+
+#### Found in Stage 3, deliberately not fixed
+
+- **`collection_date` is still d/m/Y in 19 of 30 datasets.** `3/12/2010` cannot be told from `12/3/2010` without the source file, so the migration reports and never converts. Needs a person with the original data; its own board issue.
+- Nine datasets match no instrument profile and keep their mappings as `variables_extra`. `Krishnananthaselvan_2024` (4 methods, 25 mappings), `Drake_2017` and `Kumarathunge_2018` are the largest. Not a defect — they are hydraulic or hand-transcribed files with no shared column vocabulary to factor out.
 
 ### Stage 4 — treatments as numbers
 

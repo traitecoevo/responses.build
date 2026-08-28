@@ -4,12 +4,23 @@
 \alias{dataset_configure}
 \title{Configure AusTraits database object}
 \usage{
-dataset_configure(filename_metadata, definitions)
+dataset_configure(
+  filename_metadata,
+  definitions,
+  instruments = get_instruments(),
+  data_types = get_data_types()
+)
 }
 \arguments{
 \item{filename_metadata}{Metadata yaml file for a given study}
 
 \item{definitions}{Definitions read in from the \code{traits.yml}}
+
+\item{instruments}{Instrument column maps, from \code{\link[=get_instruments]{get_instruments()}}. Used to
+resolve a \verb{measurements:} block that names an instrument.}
+
+\item{data_types}{Data type definitions, from \code{\link[=get_data_types]{get_data_types()}}. Used to
+check that a \verb{measurements:} block names a data type that exists.}
 }
 \value{
 List with \code{dataset_id}, \code{metadata}, \code{definitions} and \code{unit_conversion_functions}
