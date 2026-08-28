@@ -1,0 +1,163 @@
+#' Bind several built databases into one
+#'
+#' Combines the relational tables of two or more databases built by this
+#' package into a single database object. `AusFizz` and `ausfizz-private` are
+#' built separately and merged this way, so that restricted datasets can move
+#' through the same pipeline without being published.
+#'
+#' # Licensing
+#'
+#' Merging databases merges data held under different licences. The version of
+#' this function inherited from `austraits` took the metadata block of its
+#' *first* argument and discarded the rest, so merging a public compilation
+#' with a restricted one silently stamped the result with the public licence
+#' while it held all-rights-reserved data. Nothing warned.
+#'
+#' This version refuses. If the databases declare different `rights`, you must
+#' say what the merged object is licensed under by passing `rights`. There is
+#' no default, because there is no safe default: the correct answer depends on
+#' agreements this function cannot see.
+#'
+#' @param ... Databases to combine
+#' @param databases A list of databases, as an alternative to `...`
+#' @param rights The `rights` string for the merged database. Required when the
+#'   inputs disagree. The rest of the licence block (holder, URI, description)
+#'   is taken from whichever input declares this `rights` value; if none does,
+#'   supply `license` instead.
+#' @param license A complete licence block (`rights`, `rights_holder`,
+#'   `rights_URI`, `description`) for the merged database, overriding `rights`.
+#'
+#' @return A combined database object of class `responses.build`
+#' @importFrom rlang .data
+#' @export
+bind_databases <- function(..., databases = list(...), rights = NULL,
+                           license = NULL) {
+
+  databases <- databases[!vapply(databases, is.null, logical(1))]
+
+  if (length(databases) == 0) {
+    stop("`bind_databases()` needs at least one database.", call. = FALSE)
+  }
+
+  combine <- function(name) {
+    out <- databases %>% lapply("[[", name)
+    if (length(out) == 0) return(NULL)
+    out %>% dplyr::bind_rows() %>% dplyr::distinct()
+  }
+
+  # Sources and definitions are named lists, not tables
+  sources <- databases %>% lapply("[[", "sources")
+  keys <- sources %>% lapply(names) %>% unlist() %>% unique() %>% sort()
+  sources <- sources %>% purrr::reduce(c)
+  sources <- sources[keys]
+
+  definitions <- databases %>% lapply("[[", "definitions") %>% purrr::reduce(c)
+  definitions <- definitions[!duplicated(names(definitions))]
+  definitions <- definitions[sort(names(definitions))]
+
+  taxonomic_updates <-
+    combine("taxonomic_updates") %>%
+    dplyr::distinct() %>%
+    dplyr::arrange(
+      .data$original_name, .data$aligned_name,
+      .data$taxon_name, .data$taxonomic_resolution
+    )
+
+  contributors <- combine("contributors")
+
+  metadata <- util_resolve_merged_license(databases, rights, license)
+
+  metadata[["contributors"]] <-
+    contributors %>%
+    dplyr::select(-dplyr::any_of(c("dataset_id", "additional_role"))) %>%
+    dplyr::distinct() %>%
+    dplyr::arrange(.data$last_name, .data$given_name) %>%
+    convert_df_to_list()
+
+  ret <-
+    list(
+      traits = combine("traits") %>%
+        dplyr::arrange(.data$dataset_id, .data$observation_id, .data$trait_name),
+      locations = combine("locations") %>%
+        dplyr::arrange(.data$dataset_id, .data$location_id),
+      contexts = combine("contexts") %>%
+        dplyr::arrange(.data$dataset_id, .data$category),
+      methods = combine("methods") %>%
+        dplyr::arrange(.data$dataset_id, .data$trait_name),
+      excluded_data = combine("excluded_data") %>%
+        dplyr::arrange(.data$dataset_id, .data$observation_id, .data$trait_name),
+      taxonomic_updates = taxonomic_updates,
+      taxa = combine("taxa") %>% dplyr::distinct() %>% dplyr::arrange(.data$taxon_name),
+      identifiers = combine("identifiers") %>% dplyr::distinct(),
+      contributors = contributors,
+      sources = sources,
+      definitions = definitions,
+      schema = databases[[1]][["schema"]],
+      metadata = metadata,
+      build_info = list(session_info = utils::sessionInfo())
+    )
+
+  class(ret) <- c("list", "responses.build")
+
+  ret
+}
+
+
+#' Decide the licence of a merged database
+#'
+#' Returns the metadata block for the merged object. Errors rather than guess
+#' when the inputs disagree and the caller has not said what the result is.
+#'
+#' @param databases List of databases being merged
+#' @param rights A `rights` string supplied by the caller, or NULL
+#' @param license A complete licence block supplied by the caller, or NULL
+#'
+#' @return A metadata list
+#' @noRd
+util_resolve_merged_license <- function(databases, rights = NULL, license = NULL) {
+
+  metadata <- databases[[1]][["metadata"]]
+
+  declared <-
+    databases %>%
+    lapply(function(d) d[["metadata"]][["license"]][["rights"]]) %>%
+    unlist() %>%
+    unique()
+
+  if (!is.null(license)) {
+    metadata[["license"]] <- license
+    return(metadata)
+  }
+
+  if (!is.null(rights)) {
+    # Take the full block from whichever input declares this `rights` value, so
+    # the holder, URI and description stay consistent with the string.
+    match <- Filter(
+      function(d) identical(d[["metadata"]][["license"]][["rights"]], rights),
+      databases
+    )
+    if (length(match) > 0) {
+      metadata[["license"]] <- match[[1]][["metadata"]][["license"]]
+    } else {
+      metadata[["license"]][["rights"]] <- rights
+      metadata[["license"]][["description"]] <- NULL
+      metadata[["license"]][["rights_URI"]] <- NULL
+    }
+    return(metadata)
+  }
+
+  if (length(declared) > 1) {
+    stop(
+      "The databases being merged declare different licences:\n  ",
+      paste(declared, collapse = "\n  "), "\n",
+      "Merging them produces an object whose licence this function cannot ",
+      "infer -- the previous behaviour was to keep the first argument's and ",
+      "silently discard the rest.\n",
+      "Pass `rights = ` (or a full `license = ` block) to state what the ",
+      "merged database is licensed under.",
+      call. = FALSE
+    )
+  }
+
+  metadata
+}

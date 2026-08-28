@@ -33,7 +33,7 @@ dataset_configure <- function(
   # Table of trait_mapping
   trait_mapping <-
     metadata[["traits"]] %>%
-    austraits::convert_list_to_df2() %>%
+    convert_list_to_df2() %>%
     dplyr::filter(!is.na(.data$trait_name))
 
   # Subset of definitions
@@ -98,7 +98,7 @@ dataset_process <- function(filename_data_raw,
   # Load identifiers
   if ("identifiers" %in% names(metadata) && !all(is.na(metadata[["identifiers"]]))) {
     identifiers <-
-      metadata[["identifiers"]] %>% austraits::convert_list_to_df2()
+      metadata[["identifiers"]] %>% convert_list_to_df2()
 
     # A `var_in` naming a column that does not exist used to pass silently:
     # `process_add_all_columns()` creates the missing column as all-NA, and the
@@ -278,7 +278,7 @@ dataset_process <- function(filename_data_raw,
   if (!is.na(metadata[["exclude_observations"]][1])) {
     taxa_to_exclude <-
       metadata[["exclude_observations"]] %>%
-      austraits::convert_list_to_df2() %>%
+      convert_list_to_df2() %>%
       dplyr::mutate(
         find = stringr::str_split(.data$find, ", ")
         ) %>%
@@ -330,20 +330,17 @@ dataset_process <- function(filename_data_raw,
     metadata[["related_identifiers"]] <- list()
   }
 
-  # The identifier below is a compatibility handshake, not a provenance claim.
-  # `austraits:::get_compiled_by_traits.build()` string-matches
-  # "github.com/traitecoevo/traits.build" against it to decide whether a database
-  # is readable; if it matches nothing, `check_compatibility()` returns FALSE and
-  # every austraits accessor (summarise_austraits, join_all, the dataset report)
-  # refuses to run. So the URL stays upstream's while the version reports this
-  # engine. Adding an honest second `responses.build` row needs a matching change
-  # in austraits first -- see PLAN.md.
+  # Honest provenance: a database records the engine that actually compiled it.
+  # This used to carry upstream's `traits.build` URL as a compatibility
+  # handshake, because `austraits:::get_compiled_by_traits.build()`
+  # string-matched it to decide whether a database was readable at all. That
+  # linkage is severed -- see PLAN.md, "Diverge fully".
   metadata[["related_identifiers"]] <-
     util_append_to_list(
       metadata[["related_identifiers"]],
       list(
         related_identifier_type = "url",
-        identifier = "https://github.com/traitecoevo/traits.build",
+        identifier = "https://github.com/traitecoevo/responses.build",
         relation_type = "isCompiledBy",
         resource_type = "software",
         version = as.character(utils::packageVersion("responses.build"))
@@ -376,11 +373,10 @@ dataset_process <- function(filename_data_raw,
       build_info = list(session_info = utils::sessionInfo())
     )
 
-  # The emitted S3 class stays `traits.build` on purpose. The `austraits`
-  # package dispatches on it (`print.traits.build`, `get_compiled_by_traits.build`),
-  # so changing it here would silently break every downstream accessor for
-  # databases built with this engine. Revisit only alongside austraits.
-  class(ret) <- c("list", "traits.build")
+  # A database built here is a `responses.build` database and says so. This
+  # previously emitted `traits.build` so that the `austraits` package would
+  # dispatch on it; that linkage is severed -- see PLAN.md.
+  class(ret) <- c("list", "responses.build")
 
   ret
 }
@@ -640,7 +636,7 @@ process_create_observation_id <- function(data, metadata) {
 
   }
 
-  traits_table <- metadata[["traits"]] %>% austraits::convert_list_to_df2()
+  traits_table <- metadata[["traits"]] %>% convert_list_to_df2()
 
   if (!is.null(traits_table[["repeat_measurements_id"]])) {
 
@@ -702,7 +698,7 @@ process_generate_id <- function(x, prefix, sort = FALSE) {
 #' @importFrom rlang .data
 process_generate_method_ids <- function(metadata_traits) {
   metadata_traits %>%
-    austraits::convert_list_to_df2() %>%
+    convert_list_to_df2() %>%
     dplyr::filter(!is.na(.data$trait_name)) %>%
     dplyr::select(dplyr::all_of(c("trait_name", "methods"))) %>%
     dplyr::distinct() %>%
@@ -742,7 +738,7 @@ process_format_contexts <- function(my_list, dataset_id, traits) {
         context_property = x$context_property,
         category = x$category,
         var_in = x$var_in,
-        austraits::convert_list_to_df2(x$values)
+        convert_list_to_df2(x$values)
       ) %>%
       dplyr::mutate(dataset_id = dataset_id) %>%
       dplyr::select(dplyr::any_of(vars))
@@ -935,7 +931,7 @@ process_format_locations <- function(my_list, dataset_id, schema) {
   out <-
     my_list %>%
     lapply(lapply, as.character) %>%
-    purrr::map_df(austraits::convert_list_to_df1, .id = "name") %>%
+    purrr::map_df(convert_list_to_df1, .id = "name") %>%
     dplyr::mutate(dataset_id = dataset_id) %>%
     dplyr::rename(dplyr::all_of(c("location_property" = "key", "location_name" = "name"))) %>%
     process_add_all_columns(
@@ -1004,7 +1000,7 @@ process_flag_excluded_observations <- function(data, metadata) {
 
   fix <-
     metadata$exclude_observations %>%
-    austraits::convert_list_to_df2() %>%
+    convert_list_to_df2() %>%
     tidyr::separate_longer_delim("find", delim = ", ") %>%
     dplyr::mutate(find = str_squish(.data$find))
 
@@ -1012,7 +1008,7 @@ process_flag_excluded_observations <- function(data, metadata) {
 
   fix <- split(fix, fix$variable)
 
-  traits <- metadata$traits %>% austraits::convert_list_to_df2()
+  traits <- metadata$traits %>% convert_list_to_df2()
 
   for (v in names(fix))
 
@@ -1530,7 +1526,7 @@ process_parse_data <- function(data, dataset_id, metadata, contexts, schema, ide
   # Step 2. Add trait information, with correct names
   traits_table <-
     metadata[["traits"]] %>%
-    austraits::convert_list_to_df2() %>%
+    convert_list_to_df2() %>%
     dplyr::filter(!is.na(.data$trait_name))  # Remove any rows without a matching trait record
 
   # Check that the trait names as specified in config actually exist in data
@@ -1659,7 +1655,7 @@ process_parse_data <- function(data, dataset_id, metadata, contexts, schema, ide
   # Implement any value changes as per substitutions
   if (!is.na(metadata[["substitutions"]][1])) {
 
-    substitutions_table <- austraits::convert_list_to_df2(metadata[["substitutions"]]) %>%
+    substitutions_table <- convert_list_to_df2(metadata[["substitutions"]]) %>%
       dplyr::mutate(
         find = tolower(.data$find),
         replace = tolower(.data$replace)
@@ -1800,7 +1796,7 @@ process_format_contributors <- function(my_list, dataset_id, schema) {
     if (length(unlist(my_list$data_collectors)) > 1) {
       contributors <-
         my_list$data_collectors %>%
-        austraits::convert_list_to_df2() %>%
+        convert_list_to_df2() %>%
         dplyr::mutate(dataset_id = dataset_id) %>%
         dplyr::filter(!is.na(.data$last_name))
     } else {
@@ -1837,7 +1833,7 @@ process_format_identifiers <- function(my_list, dataset_id, schema) {
     if (length(unlist(my_list)) > 0) {
       identifiers <-
         my_list %>%
-        austraits::convert_list_to_df2() %>%
+        convert_list_to_df2() %>%
         dplyr::mutate(dataset_id = dataset_id)
     } else {
       identifiers <- tibble::tibble(dataset_id = character())
@@ -1862,7 +1858,7 @@ process_format_methods <- function(metadata, dataset_id, sources, contributors) 
       source_key = names(metadata$source),
       type = str_replace_all(.data$source_key, "_[:digit:]+", ""),
       source_id = metadata$source %>%
-        austraits::convert_list_to_df2() %>%
+        convert_list_to_df2() %>%
         purrr::pluck("key")
     )
 
@@ -1895,7 +1891,7 @@ process_format_methods <- function(metadata, dataset_id, sources, contributors) 
       ,
       # Methods for entire study
       metadata$dataset %>%
-        austraits::convert_list_to_df1() %>%
+        convert_list_to_df1() %>%
         tidyr::spread(.data$key, .data$value) %>%
         dplyr::mutate(dataset_id = dataset_id) %>%
         dplyr::select(
@@ -2022,7 +2018,7 @@ process_taxonomic_updates <- function(data, metadata) {
 
   # Now make any replacements specified in metadata yaml
   ## Read metadata table, quit if empty
-  substitutions_table <-  austraits::convert_list_to_df2(metadata[["taxonomic_updates"]])
+  substitutions_table <-  convert_list_to_df2(metadata[["taxonomic_updates"]])
 
   if (any(is.na(substitutions_table[1])) || nrow(substitutions_table) == 0) {
     return(out)

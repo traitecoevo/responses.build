@@ -23,6 +23,22 @@ dataset_report <- function(dataset_id, austraits, overwrite = FALSE,
                            input_file = system.file("support", "report_dataset.Rmd", package = "responses.build"),
                            quiet = TRUE, keep = FALSE) {
 
+  # The report template is still written against the `austraits` reader --
+  # `extract_dataset()`, `extract_data()`, `plot_trait_distribution_beeswarm()`
+  # -- and those refuse to run on a database this package now builds, because
+  # `austraits::check_compatibility()` string-matches the `isCompiledBy` URL
+  # that Stage 0 made honest. Failing here with an explanation beats failing
+  # inside a child process with a compatibility error nobody can place.
+  # Stage 6 rewrites the template against `curves` / `curve_points`.
+  stop(
+    "`dataset_report()` is out of service.\n",
+    "Its template is written against the `austraits` reader, whose accessors ",
+    "reject databases built by responses.build now that the compatibility ",
+    "handshake is severed. It is rewritten against the curve tables in Stage 6 ",
+    "-- see PLAN.md.",
+    call. = FALSE
+  )
+
   built <- vapply(
     dataset_id,
     function(d) {

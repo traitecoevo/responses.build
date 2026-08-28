@@ -37,7 +37,7 @@ drop_build_version <- function(metadata) {
     metadata[["related_identifiers"]] %>%
     lapply(function(entry) {
       if (identical(entry[["identifier"]],
-                    "https://github.com/traitecoevo/traits.build")) {
+                    "https://github.com/traitecoevo/responses.build")) {
         entry[["version"]] <- NULL
       }
       entry

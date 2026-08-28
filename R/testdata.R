@@ -449,7 +449,7 @@ dataset_test_worker <-
           info = paste0(red(f), "\ttrait")
         )
 
-        expect_silent(traits <- austraits::convert_list_to_df2(metadata[["traits"]]))
+        expect_silent(traits <- convert_list_to_df2(metadata[["traits"]]))
 
         test_expect_true(
           is.data.frame(traits),
@@ -624,7 +624,7 @@ dataset_test_worker <-
           )
 
           test_expect_no_error(
-            x <- metadata[["substitutions"]] %>% austraits::convert_list_to_df2() %>% split(.$trait_name),
+            x <- metadata[["substitutions"]] %>% convert_list_to_df2() %>% split(.$trait_name),
             info = paste0(red(f), "\tconverting substitutions to a dataframe and splitting by `trait_name`")
           )
 
@@ -674,7 +674,7 @@ dataset_test_worker <-
         if (!is.na(metadata[["taxonomic_updates"]][1])) {
 
           test_expect_no_error(
-            x <- metadata[["taxonomic_updates"]] %>% austraits::convert_list_to_df2(),
+            x <- metadata[["taxonomic_updates"]] %>% convert_list_to_df2(),
             info = paste0(red(f), "\tconverting `taxonomic_updates` to a dataframe")
           )
 
@@ -708,7 +708,7 @@ dataset_test_worker <-
         # Load identifiers
         if ("identifiers" %in% names(metadata) & !all(is.na(metadata[["identifiers"]]))) {
           identifiers <-
-            metadata[["identifiers"]] %>% austraits::convert_list_to_df2()
+            metadata[["identifiers"]] %>% convert_list_to_df2()
         } else {
           identifiers <- list(
             "var_in",
@@ -789,7 +789,7 @@ dataset_test_worker <-
 
           test_expect_no_error(
             x <- metadata[["exclude_observations"]] %>%
-              austraits::convert_list_to_df2() %>%
+              convert_list_to_df2() %>%
               tidyr::separate_longer_delim("find", delim = ", ") %>%
               dplyr::mutate(find = str_squish(.data$find)),
             info = paste0(red(f), "\tconverting `exclude_observations` to a dataframe")

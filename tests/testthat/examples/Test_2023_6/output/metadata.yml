@@ -22,10 +22,10 @@ related_identifiers:
   relation_type: isCitedBy
   resource_type: publication-article
 - related_identifier_type: url
-  identifier: https://github.com/traitecoevo/traits.build
+  identifier: https://github.com/traitecoevo/responses.build
   relation_type: isCompiledBy
   resource_type: software
-  version: 2.1.0.900
+  version: 0.1.0.9000
 references: 'Falster, Gallagher et al (2021) *AusTraits, a curated plant trait database
   for the Australian flora*. Scientific Data 8: 254, https://doi.org/10.1038/s41597-021-01006-6'
 publisher: Zenodo

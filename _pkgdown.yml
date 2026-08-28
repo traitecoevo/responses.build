@@ -146,10 +146,10 @@ reference:
     - '`notetaker_print_notes`'
     - '`notes_random_string`'
 
-  - title: Deprecated function names
-    desc: Functions that have been moved from responses.build to austraits and renamed. Deprecated names still work.
+  - title: Combining and converting
+    desc: Merging built databases, and the list/data-frame helpers the metadata format needs.
     contents:
-    - '`build_combine`'
-    - '`util_df_to_list`'
-    - '`util_list_to_df1`'
-    - '`util_list_to_df2`'
+    - '`bind_databases`'
+    - '`convert_df_to_list`'
+    - '`convert_list_to_df1`'
+    - '`convert_list_to_df2`'

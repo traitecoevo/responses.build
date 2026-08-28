@@ -334,128 +334,67 @@ create_tree_branch <- function(x, title, prefix = "") {
   )
 }
 
-# Renaming and re-exporting austraits functions to ensure old scripts still work
 
-#' Convert a list with single entries to dataframe
+# ---------------------------------------------------------------------------
+# List <-> data frame helpers
+#
+# These were re-exported from `austraits` until this package severed that
+# dependency (PLAN.md, "Diverge fully"). They are vendored rather than depended
+# upon because they are four lines each and the dependency they carried ran the
+# package graph backwards: in the data pipeline this package is upstream of
+# `austraits`, not downstream of it.
+# ---------------------------------------------------------------------------
+
+#' Convert a list of lists to a data frame
 #'
-#' @description
-#' `r lifecycle::badge("deprecated")`
+#' Requires that every list have the same named elements.
+#'
+#' @param my_list A list of lists
+#' @param as_character Logical; read all values as character
+#' @param on_empty Value to return if `my_list` is NULL, NA or length zero
+#'
+#' @return A tibble, or `on_empty`
+#' @export
+#' @examples convert_list_to_df2(convert_df_to_list(dplyr::starwars))
+convert_list_to_df2 <- function(my_list, as_character = TRUE, on_empty = NA) {
+
+  if (is.null(my_list) || any(is.na(my_list)) || length(my_list) == 0) {
+    return(on_empty)
+  }
+
+  if (as_character) {
+    my_list <- lapply(my_list, lapply, as.character)
+  }
+
+  dplyr::bind_rows(lapply(my_list, tibble::as_tibble))
+}
+
+#' Convert a data frame to a named list
+#'
+#' Useful when converting to yaml.
+#'
+#' @param df A data frame
+#'
+#' @return A list, one element per row
+#' @export
+#' @examples convert_df_to_list(dplyr::starwars)
+convert_df_to_list <- function(df) {
+  attr(df, "out.attrs") <- NULL
+  unname(lapply(split(df, seq_len(nrow(df))), as.list))
+}
+
+#' Convert a list with single entries to a data frame
 #'
 #' @param my_list A list with single entries
-#' @return A tibble with two columns
+#'
+#' @return A tibble with `key` and `value` columns
 #' @export
-#' @examples \dontrun{
-#' util_list_to_df1(as.list(dplyr::starwars)[2])
-#' }
-util_list_to_df1 <- function(my_list) {
-  lifecycle::deprecate_warn("1.0.0", "util_list_to_df1()", "austraits::convert_list_to_df1()")
-  austraits::convert_list_to_df1(my_list)
-}
+#' @examples convert_list_to_df1(as.list(dplyr::starwars)[2])
+convert_list_to_df1 <- function(my_list) {
 
-#' @importFrom austraits convert_list_to_df1
-#' @export
-austraits::convert_list_to_df1
+  for (f in names(my_list)) {
+    if (is.null(my_list[[f]])) my_list[[f]] <- NA
+  }
 
-#' Convert a list of lists to dataframe
-#'
-#' @description
-#' Convert a list of lists to dataframe; requires that every list have same named elements.
-#'
-#' `r lifecycle::badge("deprecated")`
-#'
-#' @param my_list A list of lists to dataframe
-#' @param as_character A logical value, indicating whether the values are read as character
-#' @param on_empty Value to return if my_list is NULL, NA or is length == 0, default = NA
-#'
-#' @export
-#' @examples util_list_to_df2(util_df_to_list(dplyr::starwars))
-util_list_to_df2 <- function(my_list, as_character = TRUE, on_empty = NA) {
-  lifecycle::deprecate_warn("1.0.0", "util_list_to_df2()", "austraits::convert_list_to_df2()")
-  austraits::convert_list_to_df2(my_list, as_character, on_empty)
-}
-
-#' @importFrom austraits convert_list_to_df2
-#' @export
-austraits::convert_list_to_df2
-
-#' Convert dataframe to list
-#'
-#' @description
-#' Convert a dataframe to a named list, useful when converting to yaml.
-#'
-#' `r lifecycle::badge("deprecated")`
-#'
-#' @param df A dataframe
-#' @return A (yaml) list
-#' @export
-#' @examples util_df_to_list(dplyr::starwars)
-util_df_to_list <- function(df) {
-  lifecycle::deprecate_warn("1.0.0", "util_df_to_list()", "austraits::convert_df_to_list()")
-  austraits::convert_df_to_list(df)
-}
-
-#' @importFrom austraits convert_df_to_list
-#' @export
-austraits::convert_df_to_list
-
-#' Combine all the AusTraits studies into the compiled AusTraits database
-#'
-#' @description
-#' `build_combine` compiles all the loaded studies into a single AusTraits
-#' database object as a large list.
-#'
-#' `r lifecycle::badge("deprecated")`
-#'
-#' @param ... Arguments passed to other functions
-#' @param d List of all the AusTraits studies
-#'
-#' @return AusTraits compilation database as a large list
-#' @importFrom rlang .data
-#' @export
-build_combine <- function(..., d = list(...)) {
-  lifecycle::deprecate_warn("1.0.0", "build_combine()", "austraits::bind_databases()")
-  # The shim pointed users at `bind_databases()` but called
-  # `convert_df_to_list()`, and passed the studies twice -- once through `...`
-  # and again as `d`, which `d = list(...)` had already collected. So it
-  # returned nonsense for anyone who followed the deprecation notice.
-  austraits::bind_databases(databases = d)
-}
-
-#' @importFrom austraits bind_databases
-#' @export
-austraits::bind_databases
-
-#' @importFrom austraits flatten_database
-#' @export
-austraits::flatten_database
-
-#' Create a single combined table from a database
-#'
-#' Joins the relational tables of a built database into one wide table, by
-#' calling [austraits::flatten_database()].
-#'
-#' Wenk et al. 2024 (*Ecological Informatics* 83:102773) presents
-#' `database_create_combined_table` as the route to the combined table, but it
-#' was only ever assigned here and never exported, so the published workflow
-#' could not be followed. The paper is the public specification of this
-#' workflow, so the name it documents resolves.
-#'
-#' This is a thin pass-through rather than a reimplementation on purpose. The
-#' joins it relies on are eight functions totalling ~264 lines in `austraits`,
-#' and querying a built compilation is that package's job -- this one builds
-#' the database. Arguments are passed straight through so the defaults have a
-#' single definition.
-#'
-#' Note that `austraits` is currently in `Depends`. When it moves to `Suggests`
-#' this needs a `util_require_package("austraits", ...)` guard, as does
-#' [build_combine()] -- see #225.
-#'
-#' @param database A built database object
-#' @param ... Further arguments passed to [austraits::flatten_database()],
-#' such as `format`, `vars` and `include_description`
-#'
-#' @return A single wide table combining the database's relational tables
-#' @export
-database_create_combined_table <- function(database, ...) {
-  austraits::flatten_database(database, ...)
+  tibble::tibble(key = names(my_list), value = unname(unlist(my_list)))
 }

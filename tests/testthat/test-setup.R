@@ -799,7 +799,7 @@ test_that("`build_setup_pipeline` is working", {
   responses.build_tag <- last(austraits$metadata$related_identifiers)
   expected_output <- list(
     related_identifier_type = "url",
-    identifier = "https://github.com/traitecoevo/traits.build",
+    identifier = "https://github.com/traitecoevo/responses.build",
     relation_type = "isCompiledBy",
     resource_type = "software",
     version = as.character(packageVersion("responses.build"))
@@ -841,7 +841,22 @@ testthat::test_that("`dataset_find_taxon` is working", {
 })
 
 
+test_that("`dataset_report()` refuses to run until Stage 6 rewrites it", {
+  # Stage 0 severed the austraits linkage, and the report template is written
+  # against the austraits reader, whose accessors now reject databases this
+  # package builds. `dataset_report()` says so rather than failing inside a
+  # child process. The two tests that follow this one -- that a report renders,
+  # and that a failed render is reported rather than swallowed -- are the
+  # behaviour Stage 6 must restore against `curves` / `curve_points`.
+  expect_error(
+    dataset_report(dataset_id = "Test_2022", austraits = NULL),
+    "out of service"
+  )
+})
+
+
 test_that("reports and plots are produced", {
+  skip("dataset_report() is out of service until Stage 6 -- see PLAN.md")
   # This used to assert only `expect_silent()`. `dataset_report()` renders in a
   # child process, so a failure there writes to that process's stderr and
   # `expect_silent()` cannot see it -- and `dataset_report()` swallowed the
@@ -880,6 +895,7 @@ test_that("reports and plots are produced", {
 
 
 test_that("`dataset_report` reports a failed render instead of swallowing it", {
+  skip("dataset_report() is out of service until Stage 6 -- see PLAN.md")
   # A render failure used to be discarded by a bare `try()` whose result was
   # never inspected, so the success line printed regardless and no file was
   # written. In CI that is not hypothetical: `forcats` is absent there, the
@@ -913,6 +929,7 @@ test_that("`dataset_report` reports a failed render instead of swallowing it", {
 
 
 test_that("`dataset_report` rejects a missing template clearly", {
+  skip("dataset_report() is out of service until Stage 6 -- see PLAN.md")
   # `readLines()` on a nonexistent template gave "cannot open the connection",
   # which names neither the file nor the argument
   expect_silent(suppressMessages(austraits <- remake::make("test_name")))

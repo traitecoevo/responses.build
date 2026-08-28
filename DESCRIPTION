@@ -22,8 +22,7 @@ Depends:
     lubridate,
     readr,
     stringr (>= 1.5.0),
-    tidyr,
-    austraits
+    tidyr
 Imports:
     crayon,
     git2r,
@@ -60,8 +59,7 @@ Suggests:
     zip,
     covr
 Remotes:
-    richfitz/remake,
-    traitecoevo/austraits
+    richfitz/remake
 Encoding: UTF-8
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)

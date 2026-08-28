@@ -24,9 +24,10 @@ test_that("`dataset_process` is working", {
   expect_no_error(austraits_names <- schema$austraits$elements %>% names())
   expect_no_error(x <- dataset_process(test_data, test_config, schema, resource_metadata, unit_conversions))
   expect_type(x, "list")
-  # Deliberately still `traits.build`: austraits dispatches on that class
-  # (print.traits.build). Pinned here so a rename cannot happen by accident.
-  expect_equal(class(x), c("list", "traits.build"))
+  # A database built here is a `responses.build` database. This emitted
+  # `traits.build` until the austraits linkage was severed; pinned so a rename
+  # cannot happen by accident.
+  expect_equal(class(x), c("list", "responses.build"))
   expect_length(x, 14)
   expect_named(x, austraits_names)
   expect_equal(nrow(x$excluded_data), 0)
@@ -177,12 +178,14 @@ test_that("`write_plaintext` exports every table in the database", {
 })
 
 
-test_that("the pipeline published in Wenk et al. 2024 Fig. 1 runs as written", {
-  # Three of the seven functions the paper's figure names were not usable:
-  # `data_update_taxonomy()` did not exist, `database_create_combined_table`
-  # was never exported, and `build_combine()`'s shim called the wrong function.
-  # A reader following the published figure could not run the documented
-  # workflow. This walks it exactly as drawn, so that stays true.
+test_that("the build pipeline runs end to end", {
+  # This began as a test that the pipeline published in Wenk et al. 2024 Fig. 1
+  # ran as drawn. That paper is `traits.build`'s public specification, not this
+  # fork's, and the two functions it named that only existed here as
+  # pass-throughs to `austraits` -- `database_create_combined_table()` and
+  # `build_combine()` -- went with the severed dependency (PLAN.md, Stage 0).
+  # The end-to-end walk is still worth having, so it stays, minus the joined
+  # combined table. `curve_points` replaces that in Stage 2.
   taxon_list <- read_csv_char("config/taxon_list-orig.csv")
 
   build_config <- dataset_configure("examples/Test_2023_1/metadata.yml",
@@ -201,13 +204,10 @@ test_that("the pipeline published in Wenk et al. 2024 Fig. 1 runs as written", {
       dataset_update_taxonomy(taxon_list)
   )
 
-  database <- austraits::bind_databases(databases = list(Test_2023_1 = built))
+  database <- bind_databases(databases = list(Test_2023_1 = built))
 
-  combined <- database_create_combined_table(database)
-  expect_s3_class(combined, "data.frame")
-  expect_equal(nrow(combined), nrow(built$traits))
-  # Wider than the traits table, since it is the relational tables joined in
-  expect_gt(ncol(combined), ncol(built$traits))
+  expect_s3_class(database, "responses.build")
+  expect_equal(nrow(database$traits), nrow(built$traits))
 })
 
 

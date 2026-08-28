@@ -1,8 +1,11 @@
 # responses.build 0.1.0.9000 (development version)
 
 - Forked from `traits.build` at `develop` commit `c2be7f9` (version 2.1.0.900). Nothing is changed but the package's own identity: its name, version, authorship, and the `system.file()` lookups and schema filename that follow from it. Databases built with `responses.build` are identical to those built with `traits.build` apart from the engine version stamp and `build_info$session_info`.
-- Two pieces of upstream identity are kept deliberately, because `austraits` depends on both: built databases still carry the S3 class `traits.build`, and still carry `https://github.com/traitecoevo/traits.build` as the `isCompiledBy` related identifier. Both are pinned by tests. See `PLAN.md`.
-- The response-curve data model is not implemented yet.
+- The response-curve data model is not implemented yet. `PLAN.md` sets out the seven stages that implement it; the entries below are Stage 0.
+- **Severed the `austraits` linkage.** `austraits` is no longer a dependency. Built databases now carry the S3 class `responses.build` and record `https://github.com/traitecoevo/responses.build` as the `isCompiledBy` related identifier — honest provenance, where both previously reported upstream's so that `austraits::check_compatibility()` would accept the output. Both are pinned by tests. The AusTraits pipeline remains the long-term goal, but as a data handoff rather than a runtime dependency.
+- `convert_list_to_df1()`, `convert_list_to_df2()` and `convert_df_to_list()` are now defined here rather than re-exported from `austraits`. The deprecated aliases `util_list_to_df1()`, `util_list_to_df2()`, `util_df_to_list()` and `build_combine()` are removed, as is `database_create_combined_table()` — a pass-through to `austraits::flatten_database()`. The `curve_points` table replaces the combined table in Stage 2.
+- **`bind_databases()` no longer discards a licence silently.** Merging databases took the metadata block of its first argument and dropped the rest, so merging a public compilation with a restricted one stamped the result with the public licence while it held all-rights-reserved data, decided purely by argument order. It now refuses to merge databases declaring different `rights` unless the caller states the merged licence via `rights` or `license`.
+- `dataset_report()` is temporarily out of service and says so. Its template is written against the `austraits` reader, whose accessors reject databases built here now the handshake is severed. Stage 6 rewrites it against the curve tables.
 
 ---
 

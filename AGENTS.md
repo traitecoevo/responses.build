@@ -7,27 +7,45 @@ standard structure. It is a **fork of [`traits.build`](https://github.com/traite
 because response curves do not fit the one-value-per-entity assumption and were being encoded inside
 the `contexts` block instead. It exists to serve [AusFizz](https://github.com/traitecoevo/ausfizz).
 
-**Read [`PLAN.md`](PLAN.md) before changing anything.** It records the fork point, what has been
-decided, and the compatibility constraints below.
+**Read [`PLAN.md`](PLAN.md) before changing anything.** It records the fork point, the seven stages
+that implement the response-curve model, and the invariants below.
 
-### Fork relationship — two things you must not "tidy up"
+### Terminology — three levels, and they are not interchangeable
 
-The response-curve data model is **not implemented yet**. As of the initial commit this package is
-`traits.build` with only its own identity changed, and a database built with either engine is
-identical apart from the version stamp and `build_info$session_info`. Keep it that way until a
-change is deliberate.
+```
+variables      raw per-point readings              A, Ci, gsw, Tleaf, Qin, PSIstem, f0
+curves         the curve as an addressable object
+traits         derived parameters, one per entity  Amax, Vcmax25, Jmax25, P50, TLP
+```
 
-Two pieces of upstream identity are kept on purpose, because `austraits` depends on both:
+The upstream data model called the first row "traits", which is why 590,031 rows in AusFizz encode
+50,089 measurements. `traits` is reserved here for the third row — the parameters fitted from curves,
+which are what eventually reaches AusTraits.
 
-- Built databases carry the S3 class `traits.build` (`R/process.R`), because `austraits` dispatches
-  on it (`print.traits.build`).
-- Built databases carry `https://github.com/traitecoevo/traits.build` as the `isCompiledBy` related
-  identifier (`R/process.R`). `austraits:::get_compiled_by_traits.build()` **string-matches that
-  exact URL** to decide whether a database is readable; if it matches nothing,
-  `check_compatibility()` returns `FALSE` and every austraits accessor refuses to run. It is a
-  compatibility handshake, not a provenance claim.
+**Naming rule, everywhere:** identifiers are `snake_case`, carry no units, spaces or brackets, and
+units live in a `unit` field beside the value.
 
-Both are pinned by tests. Changing either requires a coordinated change in `austraits` first.
+### The fork is a real fork
+
+The response-curve data model is **not implemented yet** — `PLAN.md` Stage 2 onwards. But this
+package no longer tracks upstream, and the `austraits` linkage is severed:
+
+- Built databases carry the S3 class `responses.build` and record
+  `https://github.com/traitecoevo/responses.build` as the `isCompiledBy` related identifier. Both
+  previously reported upstream's values so that `austraits::check_compatibility()` — which
+  string-matches that exact URL — would accept the output. Both are pinned by tests.
+- `austraits` is not a dependency. `convert_list_to_df1()`, `convert_list_to_df2()`,
+  `convert_df_to_list()` and `bind_databases()` are defined here.
+- The AusTraits pipeline is still the point of this repository, but as a **data handoff** — derived
+  traits written out for `austraits.build` to ingest — not a runtime dependency.
+
+**Consequence:** `dataset_report()` is out of service until Stage 6. Its template is written against
+the `austraits` reader, whose accessors now reject databases built here. It errors with an
+explanation; three tests in `test-setup.R` are skipped naming Stage 6.
+
+**`bind_databases()` refuses to guess a licence.** Upstream kept the first argument's metadata and
+dropped the rest, so merging `ausfizz` with `ausfizz-private` stamped the result CC-BY-4.0 while it
+held all-rights-reserved data, decided by argument order. Pass `rights` when the inputs disagree.
 
 ## Repo-local guidance
 
@@ -35,9 +53,9 @@ Both are pinned by tests. Changing either requires a coordinated change in `aust
 - **Data-model ontology:** `ontology/` documents the ontology of the *data model*
   (entities/relations). This is **not** APD's trait-definition vocabulary — they're parallel, don't
   conflate them (see family context below).
-- **Schema:** `inst/support/responses.build_schema.yml`. It is currently a verbatim copy of
-  `traits.build`'s schema — that package remains the source of truth for the shared structure, and
-  this repo owns only the response-curve extensions to it (none yet).
+- **Schema:** `inst/support/responses.build_schema.yml`. Still a verbatim copy of `traits.build`'s
+  schema, but no longer for compatibility reasons — the response-curve extensions simply have not
+  been made yet. `PLAN.md` Stages 1–4 change it, and this repo owns it outright.
 - **Docs:** user manual at the [traits.build-book](https://traitecoevo.github.io/traits.build-book/);
   function reference at <http://traitecoevo.github.io/responses.build/>.
 
@@ -59,34 +77,20 @@ their `metadata.yml`, which the build evaluates with `eval(parse(text = ...), ne
 `process_custom_code()` (`R/process.R`). `new.env()` chains to the **search path**, so those snippets
 resolve unqualified names — `mutate()`, `filter()`, `str_detect()` — through whatever is attached.
 
-Across the three database repos that is **~1,240 unqualified call sites in 601 datasets**:
+**This fork serves only AusFizz**, which has ~100 such call sites. Upstream cannot move these five
+because `austraits.build` (411 datasets, 970 unqualified calls) and `ausinvertraits.build` (160, 170)
+are bound by the same contract — but those repos build with `traits.build`, not with this package, so
+that blocker does not apply here.
 
-| Repo | Datasets | Unqualified calls |
-|---|---|---|
-| `austraits.build` | 411 | 970 |
-| `ausinvertraits.build` | 160 | 170 |
-| `AusFizz` | 30 | 100 |
+**Moving the five to `Imports` still breaks AusFizz today.** `PLAN.md` Stage 3 removes most of its
+call sites by demoting the 12 dataset-level constants out of `custom_R_code`; Stage 5 then fixes
+`process_custom_code()` to populate its evaluation environment explicitly, and only then moves them.
+Order matters, and each step wants the gate: rebuild AusFizz, diff the output. Nothing in this repo's
+own suite will catch a regression here.
 
-**Moving those five to `Imports` breaks all of them**, at build time, in repos whose tests do not run
-here. CRAN treats a heavy `Depends` as a style smell rather than a blocker, so there is no deadline
-forcing the change.
-
-What is safe: adding to `Imports`, and removing entries that are genuinely unused — `base` (a no-op)
-and `forcats` (referenced nowhere) came out this way. What is not safe: moving any of the tidyverse
-five out of `Depends` without first making the `custom_R_code` environment explicit, i.e. having
-`process_custom_code()` populate its evaluation environment from the namespaces user code is entitled
-to use instead of relying on what happens to be attached. Do that and `Depends` → `Imports` becomes
-safe, and `custom_R_code` starts behaving identically under `library()`, `responses.build::`, `Rscript`
-and `targets` workers — which it does not today. traitecoevo/traits.build#225 sketches the fix; it is not done.
-
-Any change here wants the downstream gate: build all three repos before and after, and diff the
-output. Nothing in this repo's own suite will catch it.
-
-> Separately: `austraits` is also in `Depends`, for a few re-exported conversion helpers, so the
-> package graph runs `responses.build → austraits` even though in the *data* pipeline responses.build is
-> upstream of austraits. That edge is a known wart with a plan attached (traitecoevo/traits.build#225 Option A); it is not
-> the contract above, and moving `austraits` to `Suggests` does not endanger `custom_R_code`, since
-> no downstream snippet calls it unqualified. Run this package's tests after touching those helpers.
+Until Stage 5, `custom_R_code` behaves differently under `library()`, `responses.build::`, `Rscript`
+and `targets` workers — which is also why Stage 5 has to do the environment fix before switching the
+pipeline to targets.
 
 ---
 
@@ -100,8 +104,9 @@ are documented centrally in
 them there:
 
 - **Start with [`AGENTS.md`](https://github.com/traitecoevo/austraits-meta/blob/main/AGENTS.md)** —
-  pipeline order, who owns what, dependency direction (incl. the reversed `responses.build → austraits`
-  edge), source-of-truth rules, cross-boundary artifacts, gotchas.
+  pipeline order, who owns what, dependency direction, source-of-truth rules, cross-boundary
+  artifacts, gotchas. Note that it still records a reversed `responses.build → austraits` package
+  edge; that edge was removed here — see "The fork is a real fork" above.
 - **[`dependencies.yml`](https://github.com/traitecoevo/austraits-meta/blob/main/dependencies.yml)** —
   machine-readable package graph + cross-boundary artifacts.
 - **[`governance/`](https://github.com/traitecoevo/austraits-meta/tree/main/governance)** —
