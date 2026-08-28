@@ -12,7 +12,8 @@ dataset_process(
   unit_conversion_functions,
   filter_missing_values = TRUE,
   data_types = get_data_types(),
-  vocabularies = get_vocabularies()
+  vocabularies = get_vocabularies(),
+  treatment_factors = get_treatment_factors()
 )
 }
 \arguments{
@@ -36,6 +37,9 @@ curves are still identified but carry no \code{driver}.}
 \item{vocabularies}{Descriptor vocabularies, used to expand dataset-level
 descriptors into their constant column and context entry. Defaults to
 \code{config/vocabularies.yml} if present.}
+
+\item{treatment_factors}{Treatment factor definitions, used to build the
+\code{treatments} table. Defaults to \code{config/treatment_factors.yml} if present.}
 }
 \value{
 List, database object

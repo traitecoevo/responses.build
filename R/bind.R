@@ -94,7 +94,12 @@ bind_databases <- function(..., databases = list(...), rights = NULL,
       # never measured `PSIstem` has no value for it.
       curve_points = arrange_if("curve_points", "dataset_id", "curve_id", "point_id"),
       locations = arrange_if("locations", "dataset_id", "location_id"),
-      contexts = arrange_if("contexts", "dataset_id", "category"),
+      treatments = arrange_if("treatments", "dataset_id", "treatment_context_id", "factor"),
+      # A total order: `dataset_id` and `category` alone leave rows within a
+      # category free to move, so the published row order wobbled whenever a
+      # context was added or removed.
+      contexts = arrange_if("contexts", "dataset_id", "category",
+                            "context_property", "value"),
       methods = arrange_if("methods", "dataset_id", "trait_name"),
       excluded_data = arrange_if("excluded_data", "dataset_id", "observation_id", "trait_name"),
       taxonomic_updates = taxonomic_updates,

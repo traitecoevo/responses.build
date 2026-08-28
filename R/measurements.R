@@ -261,14 +261,19 @@ get_vocabularies <- function(path = NULL) {
 #' once as a literal inside `custom_R_code`, creating a column of one repeated
 #' value, and again as a `contexts` entry naming the column just created.
 #'
-#' Written once now, in the `dataset:` block:
+#' Written once now, in a `descriptors:` block of its own:
 #'
 #' ```yaml
-#' dataset:
+#' descriptors:
 #'   instrument: Li6400 IRGA
 #'   growth_environment: controlled environment chamber
 #'   leaf_status: attached leaf
 #' ```
+#'
+#' Not in `dataset:`, deliberately. A `dataset:` field is "a column name, or the
+#' value itself", so `plant_organ: leaf` in a file that has a column called
+#' `leaf` is read as a column reference and renames it. Descriptors are always
+#' values, so they need somewhere that means only that.
 #'
 #' This puts back what the two hand-written halves used to: the constant column
 #' and the context entry, with the category taken from `config/vocabularies.yml`
@@ -290,15 +295,25 @@ process_expand_descriptors <- function(data, metadata, vocabularies = list(),
 
   if (length(vocabularies) == 0) return(list(data = data, metadata = metadata))
 
-  present <- intersect(names(vocabularies), names(metadata[["dataset"]]))
+  present <- intersect(names(vocabularies), names(metadata[["descriptors"]]))
 
   if (length(present) == 0) return(list(data = data, metadata = metadata))
 
-  already <- vapply(metadata[["contexts"]], function(x) x[["context_property"]] %||% "",
-                    character(1))
+  # A dataset with no contexts has `contexts: .na`, which reads back as a bare
+  # NA rather than an empty list.
+  existing <- metadata[["contexts"]]
+  if (!is.list(existing)) existing <- list()
+
+  already <- vapply(
+    existing,
+    function(x) if (is.list(x) && !is.null(x[["context_property"]])) {
+      as.character(x[["context_property"]])
+    } else "",
+    character(1)
+  )
 
   for (name in present) {
-    value <- metadata[["dataset"]][[name]]
+    value <- metadata[["descriptors"]][[name]]
 
     if (is.null(value) || all(is.na(value))) next
 
@@ -318,12 +333,15 @@ process_expand_descriptors <- function(data, metadata, vocabularies = list(),
     data[[name]] <- as.character(value)
 
     if (!name %in% already) {
-      metadata[["contexts"]] <- c(
-        metadata[["contexts"]],
+      existing <- c(
+        existing,
         list(list(context_property = name, category = category, var_in = name))
       )
+      already <- c(already, name)
     }
   }
+
+  if (length(existing) > 0) metadata[["contexts"]] <- existing
 
   list(data = data, metadata = metadata)
 }
@@ -357,10 +375,10 @@ check_vocabularies <- function(path = "data", vocabularies = get_vocabularies())
     if (!file.exists(f)) next
     metadata <- read_metadata(f)
 
-    for (name in intersect(names(vocabularies), names(metadata[["dataset"]]))) {
+    for (name in intersect(names(vocabularies), names(metadata[["descriptors"]]))) {
       allowed <- unlist(vocabularies[[name]][["values"]])
       if (is.null(allowed)) next
-      value <- as.character(metadata[["dataset"]][[name]])
+      value <- as.character(metadata[["descriptors"]][[name]])
       if (is.null(value) || is.na(value)) next
       # A field marked `multiple` composes several values with "; "
       parts <- if (isTRUE(vocabularies[[name]][["multiple"]])) {
@@ -381,4 +399,93 @@ check_vocabularies <- function(path = "data", vocabularies = get_vocabularies())
   }
 
   dplyr::bind_rows(out)
+}
+
+
+#' Check that dataset-level descriptors really are constant
+#'
+#' A descriptor declared in `dataset:` says the property is the same for every
+#' row. `custom_R_code` runs after it is set, and can overwrite it with a
+#' computed column -- six AusFizz datasets compute `data_type` with an `ifelse`
+#' while also assigning it a literal elsewhere in the same block. A migration
+#' reading only the literal would promote it and quietly flatten a column that
+#' varies.
+#'
+#' Failing here is right: the alternative is a database that looks fine and has
+#' lost a distinction it used to record.
+#'
+#' @param data The dataset's data, after `custom_R_code` has run
+#' @param metadata The dataset's metadata
+#' @param vocabularies Descriptor vocabularies
+#' @param dataset_id The dataset, used in the error message
+#'
+#' @return Invisibly TRUE, or an error
+#' @noRd
+util_check_descriptors_constant <- function(data, metadata, vocabularies = list(),
+                                            dataset_id = "this dataset") {
+
+  if (length(vocabularies) == 0) return(invisible(TRUE))
+
+  for (name in intersect(names(vocabularies), names(metadata[["descriptors"]]))) {
+    if (!name %in% names(data)) next
+
+    values <- unique(stats::na.omit(as.character(data[[name]])))
+
+    if (length(values) > 1) {
+      stop(
+        dataset_id, ": `", name, "` is declared as a dataset descriptor, which ",
+        "means it is the same for every row, but after `custom_R_code` it holds ",
+        length(values), " values: ",
+        paste(utils::head(sort(values), 5), collapse = ", "),
+        ".\nIt varies within the dataset, so it is a context, not a descriptor. ",
+        "Move it back to `contexts:`.",
+        call. = FALSE
+      )
+    }
+  }
+
+  invisible(TRUE)
+}
+
+
+#' Put back descriptor columns that custom code dropped
+#'
+#' Descriptors are added before `custom_R_code` runs, because eight AusFizz
+#' datasets have code that reads one -- joining on `data_type`, filtering on
+#' `leaf_status`. But code that does `select(Date:Press, Species, Site)` keeps a
+#' range of columns and discards the rest, descriptors included.
+#'
+#' Adding them only afterwards breaks the readers; adding them only before
+#' breaks the selectors. So: before, and again after for anything that went
+#' missing.
+#'
+#' @param data The dataset's data, after `custom_R_code` has run
+#' @param metadata The dataset's metadata
+#' @param vocabularies Descriptor vocabularies
+#'
+#' @return The data, with every declared descriptor present
+#' @noRd
+util_restore_descriptors <- function(data, metadata, vocabularies = list()) {
+
+  if (length(vocabularies) == 0) return(data)
+
+  for (name in intersect(names(vocabularies), names(metadata[["descriptors"]]))) {
+    value <- metadata[["descriptors"]][[name]]
+    if (is.null(value) || all(is.na(value))) next
+
+    if (!name %in% names(data)) {
+      data[[name]] <- as.character(value)
+      next
+    }
+
+    # The column survived, but a join in the custom code can leave it NA on
+    # rows the join added -- `Bloomfield_2014_a` full-joins two halves of its
+    # file. A descriptor is constant by declaration, so an NA in it is a gap
+    # the join made, not a value. Filling it is what "constant" means; leaving
+    # it drops those rows out of their context, which is how 14 rows lost their
+    # entity and treatment ids.
+    data[[name]][is.na(data[[name]])] <- as.character(value)
+  }
+
+  data
 }

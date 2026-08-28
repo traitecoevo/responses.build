@@ -272,7 +272,8 @@ write_metadata <- function(data, path, style_code = FALSE) {
   # `measurements` is the Stage 3 form of `traits`; both are written so a
   # repository can hold either. Sections a file does not have come back NULL
   # and are dropped, so listing both is safe.
-  sections <- c("source", "contributors", "dataset", "identifiers", "locations",
+  sections <- c("source", "contributors", "dataset", "descriptors",
+                "identifiers", "locations",
                 "contexts", "treatments", "measurements", "traits",
                 "substitutions", "taxonomic_updates", "exclude_observations",
                 "questions")

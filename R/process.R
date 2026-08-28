@@ -77,6 +77,8 @@ dataset_configure <- function(
 #' @param vocabularies Descriptor vocabularies, used to expand dataset-level
 #' descriptors into their constant column and context entry. Defaults to
 #' `config/vocabularies.yml` if present.
+#' @param treatment_factors Treatment factor definitions, used to build the
+#' `treatments` table. Defaults to `config/treatment_factors.yml` if present.
 #'
 #' @return List, database object
 #' @export
@@ -100,7 +102,8 @@ dataset_process <- function(filename_data_raw,
                             unit_conversion_functions,
                             filter_missing_values = TRUE,
                             data_types = get_data_types(),
-                            vocabularies = get_vocabularies()) {
+                            vocabularies = get_vocabularies(),
+                            treatment_factors = get_treatment_factors()) {
 
   dataset_id <- config_for_dataset$dataset_id
   metadata <- config_for_dataset$metadata
@@ -108,15 +111,33 @@ dataset_process <- function(filename_data_raw,
 
   # Load and clean trait data
   traits <-
-    readr::read_csv(filename_data_raw, col_types = cols(), guess_max = 100000, progress = FALSE) %>%
-    process_custom_code(metadata[["dataset"]][["custom_R_code"]])()
+    readr::read_csv(filename_data_raw, col_types = cols(), guess_max = 100000, progress = FALSE)
 
-  # A descriptor is a property constant for the whole dataset -- the instrument,
-  # the growth environment. Declared once in `dataset:`, it becomes the constant
-  # column and the context entry that used to be hand-written twice each.
+  # Descriptors are expanded *before* `custom_R_code` runs, not after. A
+  # descriptor is a column of the dataset as far as the rest of the build is
+  # concerned, and eight AusFizz datasets have custom code that reads one --
+  # joining on `data_type`, filtering on `leaf_status`. Expanding afterwards
+  # left those columns missing at the moment the code needed them.
   expanded <- process_expand_descriptors(traits, metadata, vocabularies, dataset_id)
   traits <- expanded$data
   metadata <- expanded$metadata
+
+  traits <- traits %>%
+    process_custom_code(metadata[["dataset"]][["custom_R_code"]])()
+
+  # Custom code may drop the descriptor columns as easily as read them --
+  # `select(Date:Press, Species, Site)` keeps a range and discards everything
+  # else. Put back any that went missing, so a descriptor survives whichever of
+  # the two a dataset does.
+  traits <- util_restore_descriptors(traits, metadata, vocabularies)
+
+  # A descriptor is by definition constant for the whole dataset. Custom code
+  # runs after it is set and could overwrite it with something that varies --
+  # and six AusFizz datasets computed `data_type` with an `ifelse` while also
+  # assigning it a literal elsewhere, so a migration that read only the literal
+  # would silently turn a varying column into a constant one. Checked, because
+  # the alternative is a build that looks fine and is wrong.
+  util_check_descriptors_constant(traits, metadata, vocabularies, dataset_id)
 
   # Load and process contextual data
   contexts <-
@@ -389,6 +410,13 @@ dataset_process <- function(filename_data_raw,
     data_types
   )
 
+  # What each treatment actually did, as numbers. Additive: the treatment
+  # context keeps its id and its link to the measurements, and this says what
+  # the treatment was rather than which rows had it.
+  treatments <- process_create_treatments(
+    metadata, context_ids$contexts, treatment_factors, dataset_id
+  )
+
   # Combine for final output
   ret <-
     list(
@@ -396,6 +424,7 @@ dataset_process <- function(filename_data_raw,
       curves = curve_tables$curves,
       curve_points = curve_tables$curve_points,
       locations = locations,
+      treatments = treatments,
       contexts = context_ids$contexts %>% dplyr::select(-dplyr::any_of(c("var_in"))),
       methods = methods,
       excluded_data = traits %>%

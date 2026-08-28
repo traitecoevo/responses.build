@@ -166,6 +166,25 @@ austraits:
         location_name: &location_name The location name.
         location_property: The location characteristic being recorded. The name should include units of measurement, e.g. `MAT (C)`. Ideally we have at least the following variables for each location, `longitude (deg)`, `latitude (deg)`, `description`.
         value: The measured value of a location property.
+    treatments:
+      description: >
+        A table saying what each experimental treatment actually did, as numbers. A treatment was
+        otherwise recorded only as a verbatim level and a prose description - `elevated`, "plants grown
+        in 3 degrees C above ambient temperatures" - which cannot be compared across studies, since
+        `elevated` means +3 C in one and +4 in another. This is additive: the `treatment_context` keeps
+        its id and its link to the measurements and answers "which rows had this treatment", while this
+        table answers "what was the treatment". A level whose study stated no quantity appears with a
+        `label` and no `factor`; that absence is the record of an unstated quantity, not a gap to fill.
+        Cross referencing with `traits` is possible using `dataset_id` and `treatment_context_id`.
+      type: table
+      elements:
+        dataset_id: *dataset_id
+        treatment_context_id: *treatment_context_id
+        context_property: The context property naming the treatment, e.g. `growth_CO2_treatment`.
+        label: The treatment level as the study reported it, e.g. `elevated`. Kept as provenance for the factors below.
+        factor: The quantity describing what the treatment did, e.g. `growth_co2_offset`. Allowable values are defined in the compilation's `config/treatment_factors.yml`. `NA` where the study stated no quantity.
+        value: The value of the factor.
+        unit: Units of the factor, taken from its definition rather than from the dataset.
     contexts:
       description: A table containing observations of contextual characteristics associated with information in `traits`. Cross referencing between the two dataframes is possible using combinations of the variables `dataset_id`, `link_id`, and `link_vals`.
       type: table
