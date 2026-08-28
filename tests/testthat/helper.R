@@ -1,6 +1,15 @@
 library(responses.build)
 library(crayon)
 
+# The tests themselves call `tibble()`, `pull()`, `last()` and friends
+# unqualified. They used to resolve because `dplyr` and the rest were in
+# `Depends` and therefore attached; they are in `Imports` now, so the tests
+# attach what they use, like any other script would.
+library(dplyr)
+library(tibble)
+library(tidyr)
+library(stringr)
+
 # `config/taxon_list.csv` is a build artefact, not a repository file:
 # `build_setup_pipeline()` creates it and several tests read it. Until now the
 # only thing that made those reads work was file ordering -- `test-setup.R`

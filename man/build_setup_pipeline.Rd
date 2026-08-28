@@ -2,11 +2,11 @@
 % Please edit documentation in R/setup.R
 \name{build_setup_pipeline}
 \alias{build_setup_pipeline}
-\title{Update the \code{remake.yml} file with new studies}
+\title{Write the build pipeline for a compilation}
 \usage{
 build_setup_pipeline(
   dataset_ids = dir("data"),
-  method = "base",
+  method = "targets",
   database_name = "database",
   template = select_pipeline_template(method),
   workers = 1
@@ -15,19 +15,32 @@ build_setup_pipeline(
 \arguments{
 \item{dataset_ids}{\code{dataset_id}'s to include; by default includes all}
 
-\item{method}{Approach to use in build}
+\item{method}{\code{"targets"} or \code{"base"}}
 
 \item{database_name}{Name of database to be built}
 
 \item{template}{Template used to build}
 
-\item{workers}{Number of workers/parallel processes to use when using
-method = "furrr"}
+\item{workers}{Unused; kept so an existing call does not error}
 }
 \value{
-Updated \code{remake.yml} file
+Writes \verb{_targets.R} or \code{build.R}, invisibly returns nothing
 }
 \description{
-\code{build_setup_pipeline} rewrites the \code{remake.yml} file to include new
-studies.
+Generates the file that builds the database from the folders in \verb{data/}.
+}
+\details{
+\code{method = "targets"} writes \verb{_targets.R}, and is the default. It branches
+over the datasets rather than naming each one as its own targets, so adding
+a dataset means adding a folder -- and it rebuilds only what changed:
+touching one dataset's \code{metadata.yml} in AusFizz invalidates 7 targets of
+174, where the pipeline this replaces rebuilt everything.
+
+\code{method = "base"} writes a linear \code{build.R} with no dependencies beyond this
+package. It is kept for debugging and for environments without \code{targets},
+and the test suite asserts the two produce the same database.
+
+The \code{remake} and \code{furrr} methods are gone. Both carried an external
+dependency for a pipeline \code{targets} does better, and \code{remake} is not on
+CRAN.
 }

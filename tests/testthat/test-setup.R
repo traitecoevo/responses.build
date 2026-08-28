@@ -741,37 +741,20 @@ test_that("`build_setup_pipeline` is working", {
   )
   expect_equal(sort(names(base_tmp_env)), sort(targets))
 
-  # `furrr` workflow
-  furrr_tmp_env <- new.env()
-  expect_silent(suppressMessages(build_setup_pipeline(method = "furrr")))
+  # `targets` workflow. It is the default and what a compilation actually
+  # builds with; the base script above is kept as a dependency-free
+  # cross-check, and the two must agree.
+  skip_if_not_installed("targets")
+  skip_if_not_installed("tarchetypes")
 
-  expect_true(file.exists("build.R"))
-  expect_true(file.exists("config/taxon_list.csv"))
-  expect_true(file.exists("R/custom_R_code.R"))
+  expect_silent(suppressMessages(build_setup_pipeline(method = "targets")))
+  expect_true(file.exists("_targets.R"))
 
-  expect_silent(suppressMessages(source("build.R", local = furrr_tmp_env)))
+  unlink("_targets", recursive = TRUE)
+  suppressMessages(targets::tar_make(callr_function = NULL, reporter = "silent"))
 
-  targets <- c(
-    "database", "database_raw", "dataset_ids", "f", "definitions", "git_SHA", "resource_metadata",
-    "schema", "sources", "taxon_list", "unit_conversions", "version_number"
-  )
-  expect_equal(sort(names(furrr_tmp_env)), sort(targets))
-
-  out1 <- get("Test_2022", envir = base_tmp_env)
-  out2 <- get("sources", envir = furrr_tmp_env)[["Test_2022"]]
-
-  # don't compare build_info, as these differ through packages used.
-  expect_equal(out1[names(out1) != "build_info"], out2[names(out2) != "build_info"])
-
-  # Remake workflow
-  expect_silent(suppressMessages(build_setup_pipeline(method = "remake")))
-  expect_true(file.exists("remake.yml"))
-  expect_silent(yaml::read_yaml("remake.yml"))
-  expect_true(file.exists("config/taxon_list.csv"))
-
-  unlink(".remake", recursive = TRUE)
-  expect_silent(suppressMessages(austraits_raw <- remake::make("database_raw")))
-  expect_silent(suppressMessages(austraits <- remake::make("database")))
+  austraits_raw <- targets::tar_read(database_raw)
+  austraits <- targets::tar_read(database)
 
   # Save output for future tests on database
   saveRDS(austraits, "test_austraits.rds")
@@ -808,10 +791,10 @@ test_that("`build_setup_pipeline` is working", {
 
   expect_equal(nrow(austraits$taxa), nrow(austraits_raw$taxa))
 
-  # Compare products from three methods, except `build_info`
+  # The base script and the targets pipeline must agree everywhere except
+  # `build_info`, which records the packages each ran under.
   v <- setdiff(names(austraits), "build_info")
   expect_equal(base_tmp_env$database[v], austraits[v])
-  expect_equal(furrr_tmp_env$database[v], austraits[v])
 
   # Try building database with a different name with base method
   expect_silent(suppressMessages(build_setup_pipeline(method = "base", database_name = "test_name")))
@@ -825,15 +808,17 @@ test_that("`build_setup_pipeline` is working", {
   )
   expect_equal(sort(names(base_tmp_env)), sort(targets))
 
-  # Try building database with a different name with `remake` method
-  expect_silent(suppressMessages(build_setup_pipeline(method = "remake", database_name = "test_name")))
-  expect_silent(suppressMessages(test_name_raw <- remake::make("test_name_raw")))
-  expect_silent(suppressMessages(test_name <- remake::make("test_name")))
+  # Building under a different database name
+  expect_silent(suppressMessages(build_setup_pipeline(method = "targets", database_name = "test_name")))
+  unlink("_targets", recursive = TRUE)
+  suppressMessages(targets::tar_make(callr_function = NULL, reporter = "silent"))
+  test_name_raw <- targets::tar_read(test_name_raw)
+  test_name <- targets::tar_read(test_name)
 })
 
 
 testthat::test_that("`dataset_find_taxon` is working", {
-  expect_silent(suppressMessages(austraits <- remake::make("test_name")))
+  austraits <- readRDS("test_austraits.rds")
   taxon <- c("Acacia celsa", "Acronychia acidula", "Aleurites rockinghamensis", "Syzygium sayeri")
   expect_no_error(x <- dataset_find_taxon(taxon, austraits))
   expect_equal(unname(x[[4]]), "Test_2022")
@@ -862,7 +847,7 @@ test_that("reports and plots are produced", {
   # `expect_silent()` cannot see it -- and `dataset_report()` swallowed the
   # failure anyway. The test passed on a render that had errored, and asserted
   # nothing about the report existing or containing anything (#244).
-  expect_silent(suppressMessages(austraits <- remake::make("test_name")))
+  austraits <- readRDS("test_austraits.rds")
 
   # The report calls `austraits::plot_trait_distribution_beeswarm()`, which uses
   # `forcats` -- declared in `austraits`' Suggests and used there unguarded, so
@@ -900,7 +885,7 @@ test_that("`dataset_report` reports a failed render instead of swallowing it", {
   # never inspected, so the success line printed regardless and no file was
   # written. In CI that is not hypothetical: `forcats` is absent there, the
   # render failed on every run, and this test suite reported success (#244).
-  expect_silent(suppressMessages(austraits <- remake::make("test_name")))
+  austraits <- readRDS("test_austraits.rds")
 
   output_path <- withr::local_tempdir()
 
@@ -932,7 +917,7 @@ test_that("`dataset_report` rejects a missing template clearly", {
   skip("dataset_report() is out of service until Stage 6 -- see PLAN.md")
   # `readLines()` on a nonexistent template gave "cannot open the connection",
   # which names neither the file nor the argument
-  expect_silent(suppressMessages(austraits <- remake::make("test_name")))
+  austraits <- readRDS("test_austraits.rds")
   expect_error(
     dataset_report(
       dataset_id = "Test_2022", austraits = austraits,

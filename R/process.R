@@ -529,11 +529,26 @@ process_custom_code <- function(txt) {
     # test: txt <-" '' \n Total of 23.5 bitcoins. "
 
     function(data) {
-      envir <- new.env()
-      # Read in extra functions used in custom R code
+      # The evaluation environment is built explicitly rather than inherited.
+      # `new.env()` chains to the search path, so a snippet writing `mutate()`
+      # resolved it through whatever happened to be attached -- which made the
+      # build depend on `Depends` attaching five tidyverse packages, and made
+      # `custom_R_code` behave differently under `library()`, `pkg::`, `Rscript`
+      # and a `targets` worker. Now it resolves the same way everywhere.
+      envir <- new.env(parent = util_custom_code_env())
+
+      # Every snippet is written as `data %>% ...`. It used to reach `data` by
+      # lexical scoping, because the environment's parent was this function's
+      # own frame. Bound explicitly now, which is what the snippets always
+      # meant and does not depend on how the environment was built.
+      assign("data", data, envir = envir)
+
+      # Project helpers win over package exports, which is the order the search
+      # path gave them too.
       if (file.exists("R/custom_R_code.R")) {
         source("R/custom_R_code.R", local = envir)
       }
+
       eval(parse(text = txt2), envir = envir)
     }
 

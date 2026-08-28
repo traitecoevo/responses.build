@@ -120,3 +120,34 @@ util_get_SHA <- function(path = ".") {
     }, error = function(cond) NA)
   sha
 }
+
+
+#' Path to the schema this package ships
+#'
+#' A `targets` pipeline declares the schema as a file target, so that changing
+#' it invalidates every dataset that read it. That needs a path, not the parsed
+#' object.
+#'
+#' @return A file path
+#' @export
+get_schema_path <- function() {
+  system.file("support", "responses.build_schema.yml", package = "responses.build")
+}
+
+
+#' Path to a compilation's variable definitions
+#'
+#' The counterpart to [get_definitions()], for the same reason as
+#' [get_schema_path()]: a pipeline needs the path to watch, not the contents.
+#'
+#' @return A file path, or an error naming where it looked
+#' @export
+get_definitions_path <- function() {
+  if (file.exists("config/variables.yml")) return("config/variables.yml")
+  if (file.exists("config/traits.yml")) return("config/traits.yml")
+  stop(
+    "No variable definitions found. Expected `config/variables.yml` ",
+    "(or `config/traits.yml`) relative to ", getwd(),
+    call. = FALSE
+  )
+}

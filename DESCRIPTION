@@ -17,13 +17,13 @@ BugReports: https://github.com/traitecoevo/responses.build/issues
 URL: https://traitecoevo.github.io/responses.build/
 License: BSD_2_clause + file LICENCE
 Depends:
-    R (>= 4.3.0),
+    R (>= 4.3.0)
+Imports:
     dplyr,
     lubridate,
     readr,
     stringr (>= 1.5.0),
-    tidyr
-Imports:
+    tidyr,
     crayon,
     git2r,
     kableExtra,
@@ -40,8 +40,8 @@ Imports:
     yaml,
     lifecycle
 Suggests:
-    furrr,
-    remake,
+    targets,
+    tarchetypes,
     forcats,
     leaflet,
     bibtex,
@@ -58,8 +58,6 @@ Suggests:
     withr,
     zip,
     covr
-Remotes:
-    richfitz/remake
 Encoding: UTF-8
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)

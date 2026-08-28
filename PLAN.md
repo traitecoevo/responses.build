@@ -205,11 +205,25 @@ A `treatments:` block now attaches named, united numbers to a treatment level, a
 
 An offset of `0` for a control is not an invention: the factor is defined relative to the control of the same experiment, so the control is zero by definition.
 
-### Stage 5 — targets
+### Stage 5 — targets — **done**
 
-- `build_setup_pipeline()` emits `_targets.R`. Delete the three whisker templates; drop `remake` and `furrr`.
-- **Give `custom_R_code` an explicit evaluation environment** before anything else here (see the invariant below).
-- Then move `dplyr`, `lubridate`, `readr`, `stringr`, `tidyr` from `Depends` to `Imports`.
+`build_setup_pipeline()` writes `_targets.R` and it is the default. The pipeline branches over the datasets with `tar_map()` rather than naming each as three hand-written targets, so adding a dataset means adding a folder — and the generated file can no longer drift out of step with `data/` the way one target-per-dataset did.
+
+**Verified on AusFizz: the targets build is identical to the remake build, table for table.** And it rebuilds only what changed — touching one dataset's `metadata.yml` invalidates **7 targets of 174** (that dataset's five, plus the two that combine them), where remake rebuilt everything. A no-change rerun takes 0.3 s.
+
+Compilation config — schema, definitions, unit conversions, taxon list — are `format = "file"` targets, so editing one invalidates every dataset that read it. The remake pipeline named them as plain commands and did not.
+
+**One deviation from this plan as written.** It said one generator; there are two. `method = "base"` stays: a linear `build.R` with no dependency beyond this package, useful for debugging and where `targets` is unavailable, and the test suite asserts the two produce the same database. `remake` and `furrr` are gone — both carried an external dependency for a pipeline `targets` does better, and `remake` is not on CRAN.
+
+#### `custom_R_code` no longer resolves through the search path
+
+Done first, as this plan required. `process_custom_code()` built its environment with `new.env()`, whose parent is the calling frame and thence the search path — so a snippet writing `mutate()` found it through whatever happened to be attached. That is why the same snippet could behave differently under `library()`, `responses.build::`, `Rscript` and a `targets` worker.
+
+The environment is now built explicitly: a chain of one environment per package, ending at `baseenv()`, never reaching the global environment. Surveyed first — AusFizz's 30 datasets make 206 unqualified calls over 30 distinct functions, all from base, `dplyr` or `stringr` — and all five `Depends` packages are wired in so an existing snippet keeps working.
+
+`data` is now **bound** into that environment rather than found by lexical scoping. It used to be reachable only because the environment's parent was the frame holding the argument, which is an accident of how the environment was made.
+
+**Then `dplyr`, `lubridate`, `readr`, `stringr` and `tidyr` moved from `Depends` to `Imports`**, in that order, with the build diffed after each step. Both diffs were clean. The test suite needed its own `library()` calls, because the tests were relying on `Depends` too.
 
 ### Stage 6 — curve-aware reports
 

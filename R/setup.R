@@ -1290,28 +1290,40 @@ metadata_find_taxonomic_change <- function(find, replace = NULL, studies = NULL)
 }
 
 
-#' Update the `remake.yml` file with new studies
+#' Write the build pipeline for a compilation
 #'
-#' `build_setup_pipeline` rewrites the `remake.yml` file to include new
-#' studies.
+#' Generates the file that builds the database from the folders in `data/`.
+#'
+#' `method = "targets"` writes `_targets.R`, and is the default. It branches
+#' over the datasets rather than naming each one as its own targets, so adding
+#' a dataset means adding a folder -- and it rebuilds only what changed:
+#' touching one dataset's `metadata.yml` in AusFizz invalidates 7 targets of
+#' 174, where the pipeline this replaces rebuilt everything.
+#'
+#' `method = "base"` writes a linear `build.R` with no dependencies beyond this
+#' package. It is kept for debugging and for environments without `targets`,
+#' and the test suite asserts the two produce the same database.
+#'
+#' The `remake` and `furrr` methods are gone. Both carried an external
+#' dependency for a pipeline `targets` does better, and `remake` is not on
+#' CRAN.
 #'
 #' @param dataset_ids `dataset_id`'s to include; by default includes all
-#' @param method Approach to use in build
+#' @param method `"targets"` or `"base"`
 #' @param database_name Name of database to be built
 #' @param template Template used to build
-#' @param workers Number of workers/parallel processes to use when using
-#' method = "furrr"
+#' @param workers Unused; kept so an existing call does not error
 #'
-#' @return Updated `remake.yml` file
+#' @return Writes `_targets.R` or `build.R`, invisibly returns nothing
 #' @export
 build_setup_pipeline <- function(dataset_ids = dir("data"),
-                                 method = "base",
+                                 method = "targets",
                                  database_name = "database",
                                  template = select_pipeline_template(method),
                                  workers = 1
                                  ) {
 
-  if (!method %in% c("base", "remake", "furrr")) {
+  if (!method %in% c("targets", "base")) {
     stop(sprintf("Invalid method selected in `build_setup_pipeline`: %s", method))
   }
 
@@ -1349,19 +1361,9 @@ build_setup_pipeline <- function(dataset_ids = dir("data"),
     message(green("\t-> build compilation using file `build.R`"))
   }
 
-  if (method == "furrr") {
-    writeLines(pipeline, "build.R")
-    message(green("\t-> build compilation using file `build.R`"))
-
-    if (workers == 1) {
-      message(green("\nSpecify number of workers to use with the `workers` argument (default = 1)"))
-    }
-
-  }
-
-  if (method == "remake") {
-    writeLines(pipeline, "remake.yml")
-    message(green("\t-> build compilation using file `remake.yml`"))
+  if (method == "targets") {
+    writeLines(pipeline, "_targets.R")
+    message(green("\t-> build compilation with `targets::tar_make()`"))
   }
 
   # Check file R/custom_R_code.R exists
@@ -1400,10 +1402,9 @@ select_pipeline_template <- function(method) {
 
   file <-
   switch(method,
+    targets = "build_targets.whisker",
     base = "build_base.whisker",
-    remake = "build_remake.whisker",
-    furrr = "build_furrr.whisker",
-    default = "build_base.whisker"
+    default = "build_targets.whisker"
   )
 
   readLines(system.file("support", file, package = "responses.build"))

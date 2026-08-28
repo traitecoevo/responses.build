@@ -85,35 +85,37 @@ held all-rights-reserved data, decided by argument order. Pass `rights` when the
 Dev follows the standard R-package workflow: `devtools::load_all()`, `devtools::test()`,
 `devtools::check()`. Default development branch is `develop`.
 
+**Building a compilation:** `build_setup_pipeline()` writes `_targets.R`; `targets::tar_make()`
+runs it. `method = "base"` writes a dependency-free linear `build.R`, kept for debugging, and the
+suite asserts the two agree. `remake` and `furrr` are gone.
+
 **Test fixtures:** the nine `tests/testthat/examples/Test_2023_*` datasets are golden-file
 regression tests covering the whole output structure. Never hand-edit an expected file towards the
 output you observed — run `Rscript regenerate-examples.R` from `tests/testthat/` and read the diff.
 Every diff is either a fix you meant to make or a regression.
 
-### `Depends` is a contract, not an oversight — read this before editing `DESCRIPTION`
+### `custom_R_code` and the evaluation environment
 
-This is the easiest way to break every downstream database, and it looks exactly like tidying up.
+Datasets carry `custom_R_code` snippets in their `metadata.yml`, evaluated by
+`process_custom_code()` (`R/process.R`). Those snippets write `mutate()`, `filter()`,
+`str_detect()` unqualified.
 
-`DESCRIPTION` has `dplyr`, `lubridate`, `readr`, `stringr` and `tidyr` in **`Depends`**, so they are
-*attached* when responses.build loads. That is load-bearing. Datasets carry `custom_R_code` snippets in
-their `metadata.yml`, which the build evaluates with `eval(parse(text = ...), new.env())` in
-`process_custom_code()` (`R/process.R`). `new.env()` chains to the **search path**, so those snippets
-resolve unqualified names — `mutate()`, `filter()`, `str_detect()` — through whatever is attached.
+They used to resolve through the **search path**, which is why `dplyr`, `lubridate`, `readr`,
+`stringr` and `tidyr` were in `Depends`: the build worked only because loading the package attached
+them. The same snippet then behaved differently under `library()`, `responses.build::`, `Rscript`
+and a `targets` worker.
 
-**This fork serves only AusFizz**, which has ~100 such call sites. Upstream cannot move these five
-because `austraits.build` (411 datasets, 970 unqualified calls) and `ausinvertraits.build` (160, 170)
-are bound by the same contract — but those repos build with `traits.build`, not with this package, so
-that blocker does not apply here.
+The environment is now built explicitly — `util_custom_code_env()` in `R/utils.R` — as a chain of
+one environment per package ending at `baseenv()`. **It must never reach `globalenv()`**; a test
+asserts that, because if it does, resolution is back to depending on what a session happens to have
+attached. Adding a package a snippet may use means adding it to `CUSTOM_CODE_PACKAGES`, not
+attaching it somewhere.
 
-**Moving the five to `Imports` still breaks AusFizz today.** `PLAN.md` Stage 3 removes most of its
-call sites by demoting the 12 dataset-level constants out of `custom_R_code`; Stage 5 then fixes
-`process_custom_code()` to populate its evaluation environment explicitly, and only then moves them.
-Order matters, and each step wants the gate: rebuild AusFizz, diff the output. Nothing in this repo's
-own suite will catch a regression here.
+`data` is **bound** into that environment. It used to be reachable only because the environment's
+parent was the frame holding the argument.
 
-Until Stage 5, `custom_R_code` behaves differently under `library()`, `responses.build::`, `Rscript`
-and `targets` workers — which is also why Stage 5 has to do the environment fix before switching the
-pipeline to targets.
+The five tidyverse packages are in `Imports` now. Anything that relied on this package attaching
+them — including this repo's own tests — needs its own `library()` call.
 
 ---
 

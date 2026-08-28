@@ -410,3 +410,55 @@ convert_list_to_df1 <- function(my_list) {
 
   tibble::tibble(key = names(my_list), value = unname(unlist(my_list)))
 }
+
+# ---------------------------------------------------------------------------
+# The environment `custom_R_code` is evaluated in
+# ---------------------------------------------------------------------------
+
+#' Packages a `custom_R_code` snippet may use unqualified
+#'
+#' Surveyed across AusFizz's 30 datasets: 206 unqualified calls over 30 distinct
+#' functions, all of them from base, `dplyr` or `stringr`. The other four are
+#' listed because they are what `Depends` has always attached, so a snippet
+#' written against them keeps working.
+#'
+#' @noRd
+CUSTOM_CODE_PACKAGES <- c(
+  "dplyr", "tidyr", "stringr", "readr", "lubridate", "magrittr"
+)
+
+# Built once and reused. Copying every export of six packages is not something
+# to do per dataset.
+.custom_code_env <- new.env(parent = emptyenv())
+
+#' The environment a `custom_R_code` snippet is evaluated in
+#'
+#' A chain of environments, one per package, ending at the base environment --
+#' the same shape the search path had, but fixed by this package rather than by
+#' whatever a session happens to have attached.
+#'
+#' Earlier packages in [CUSTOM_CODE_PACKAGES] shadow later ones, matching the
+#' order `Depends` attached them.
+#'
+#' @return An environment
+#' @noRd
+util_custom_code_env <- function() {
+
+  if (!is.null(.custom_code_env$env)) return(.custom_code_env$env)
+
+  env <- baseenv()
+
+  for (pkg in rev(CUSTOM_CODE_PACKAGES)) {
+    if (!requireNamespace(pkg, quietly = TRUE)) next
+    ns <- asNamespace(pkg)
+    exports <- getNamespaceExports(ns)
+    layer <- new.env(parent = env)
+    for (nm in exports) {
+      assign(nm, get(nm, envir = ns), envir = layer)
+    }
+    env <- layer
+  }
+
+  .custom_code_env$env <- env
+  env
+}
