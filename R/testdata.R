@@ -318,7 +318,7 @@ dataset_test_worker <-
 
         # Check that there are no duplicate `var_in` or `context_property` fields
 
-        if(is.na(metadata[["contexts"]][1])) {
+        if (is.na(metadata[["contexts"]][1])) {
           context_properties <- metadata[["contexts"]]
           context_vars_in <- metadata[["contexts"]]
         } else {
@@ -909,21 +909,13 @@ dataset_test_worker <-
           # Testing per study, not on all studies combined (is this ideal?)
           # I'm not testing whether the functions work as intended, just that they throw no error
 
+          # The result is not bound: the matching `check_pivot_longer` test was
+          # removed in Dec 2024 when that function was deprecated, and nothing
+          # else consumed it.
           test_expect_no_warning(
-            dataset_wider <- check_pivot_wider(dataset),
+            check_pivot_wider(dataset),
             info = paste0(red(dataset_id), "\t`check_pivot_wider` threw a warning; duplicate rows detected")
           )
-
-          # Commenting out test Dec 2024, because `check_pivot_longer` has been deprecated
-
-          #if (exists("dataset_wider")) {
-          #  test_expect_no_warning(
-          #    test_expect_no_error(
-          #      dataset_longer <- check_pivot_longer(dataset_wider),
-          #      info = paste0(red(dataset_id), "\t`check_pivot_longer`")),
-          #    info = paste0(red(dataset_id), "\t`check_pivot_longer` threw a warning")
-          #  )
-          #}
         }
       })
     }
