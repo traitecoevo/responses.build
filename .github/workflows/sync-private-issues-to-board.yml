@@ -1,0 +1,55 @@
+# Why this lives here: `ausfizz` and `ausfizz-private` are private, and Actions
+# are currently blocked on private repos across the `traitecoevo` org (free plan,
+# allowance exhausted), so their own `add-to-project` workflows cannot run. This
+# repo is public, where Actions are unmetered, so the sync costs nothing.
+#
+# Keep this job minimal: one Linux runner, no checkout, no matrix, ~15s per run.
+# Issue titles are deliberately never printed -- the logs of a public repo are
+# world-readable and these are private repositories.
+
+name: "Sync private AusFizz issues to board #19"
+
+on:
+  schedule:
+    # every 30 minutes; the per-repo `on: issues` hooks handle this instantly
+    # whenever private-repo Actions are working, and this is the safety net.
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: sync-board-19
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Add any unlisted issues to project 19
+        env:
+          GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          OWNER: traitecoevo
+          PROJECT: "19"
+        run: |
+          set -euo pipefail
+
+          existing=$(gh project item-list "$PROJECT" --owner "$OWNER" \
+                       --format json --limit 1000 \
+                     | jq -r '.items[].content.url // empty' | sort -u)
+
+          added=0
+          for repo in ausfizz ausfizz-private; do
+            urls=$(gh issue list --repo "$OWNER/$repo" --state all --limit 200 \
+                     --json url --jq '.[].url')
+            for url in $urls; do
+              if ! printf '%s\n' "$existing" | grep -qxF "$url"; then
+                gh project item-add "$PROJECT" --owner "$OWNER" --url "$url" >/dev/null
+                added=$((added + 1))
+              fi
+            done
+          done
+
+          # Counts only -- never titles.
+          echo "added $added issue(s) to project $PROJECT"
