@@ -74,9 +74,11 @@ held all-rights-reserved data, decided by argument order. Pass `rights` when the
 ## Repo-local guidance
 
 - **Code:** `R/` (functions), `tests/` (testthat), `man/` (generated docs), `NAMESPACE`.
-- **Data-model ontology:** `ontology/` documents the ontology of the *data model*
-  (entities/relations). This is **not** APD's trait-definition vocabulary — they're parallel, don't
-  conflate them (see family context below).
+- **No ontology here.** The `ontology/` directory carried over from the fork was upstream's: 134
+  terms for a 13-table model, published at `w3id.org/traits.build`, which points at traits.build's
+  own copy. This package builds 17 tables and means something different by `traits`, so the terms
+  described a database it does not build. Removed. A `responses.build` ontology is worth having once
+  curve fitting settles what the derived-trait terms are; it needs its own w3id registration.
 - **Schema:** `inst/support/responses.build_schema.yml`. Still a verbatim copy of `traits.build`'s
   schema, but no longer for compatibility reasons — the response-curve extensions simply have not
   been made yet. `PLAN.md` Stages 1–4 change it, and this repo owns it outright.

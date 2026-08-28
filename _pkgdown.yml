@@ -2,7 +2,6 @@ url: http://traitecoevo.github.io/responses.build/
 
 template:
   bootswatch: cosmo
-  assets: "ontology/output"
 
 home:
   links:
@@ -22,8 +21,6 @@ navbar:
     icon: fa-book
     href: https://traitecoevo.github.io/traits.build-book/
   - text: Ontology
-    icon: fa-book
-    href: ontology/index.html
   - text: News
     href: news/index.html
   right:
