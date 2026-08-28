@@ -886,7 +886,7 @@ dataset_test_worker <-
               file.path(path_data, dataset_id, "metadata.yml"),
               file.path(path_data, dataset_id, "data.csv"),
               dataset_id,
-              get_schema("config/traits.yml", "traits"),
+              get_definitions(),
               get_unit_conversions("config/unit_conversions.csv"),
               get_schema(),
               get_schema("config/metadata.yml", "metadata"),

@@ -66,7 +66,7 @@ Three conclusions drive everything below.
 
 Board issues [#1–#4](https://github.com/orgs/traitecoevo/projects/19) close as consequences of the model rather than as patches: #1 (`data_type` as a core column) in Stage 2, #2 (structured treatments) in Stage 4, #3 (multi-data-type studies) in Stage 3, #4 (curve-aware reports) in Stage 6.
 
-### Stage 0 — sever
+### Stage 0 — sever — **done**
 
 Small, mostly deletion, and every later stage is cheaper once the compatibility constraints are gone.
 
@@ -75,15 +75,31 @@ Small, mostly deletion, and every later stage is cheaper once the compatibility 
 - Drop `austraits` from `Depends`. Vendor `convert_list_to_df2()` and `convert_df_to_list()`. Delete the deprecation shims and re-exports for `convert_list_to_df1`, `bind_databases`, `flatten_database` and `build_combine` — they exist for upstream users this fork does not have. This also removes the reversed `responses.build → austraits` package-graph edge.
 - Keep a merge function: `ausfizz` + `ausfizz-private` need it. **Fix its licence bug while vendoring** — upstream does `metadata <- databases[[1]][["metadata"]]`, so merging public+restricted silently stamps the result CC‑BY‑4.0 while it holds all-rights-reserved data. The vendored version must refuse to merge differing licences without an explicit argument, and stamp the most restrictive.
 
-### Stage 1 — naming and vocabulary
+### Stage 1 — naming and vocabulary — **done**
 
-- New `config/variables.yml` in AusFizz, holding all 34 current definitions.
-- `config/traits.yml` starts empty, keeps its meaning — one value per entity.
-- `config/Index.xlsx` is retired: it documents variable syntax in a binary file that cannot be diffed, reviewed or read by the build. Fold into `variables.yml` and delete — which also drops it from the manual four-file `cp` sync with `ausfizz-private`.
-- New `config/instruments/*.yml` — canonical export columns per instrument (`Photo → A`, `Cond → gsw`, `PARi → Qin`, …) plus observed aliases. 3–7 aliases per variable, so this resolves the large majority of the 369 mappings.
-- New `config/data_types/*.yml` — expected variables and the driver, per `data_type`.
+- `get_definitions()` in the engine reads `config/variables.yml`, falling back to `config/traits.yml` with a message. The three build templates call it instead of `get_schema("config/traits.yml", "traits")`.
+- `config/variables.yml` holds all 34 definitions, units and ranges **verbatim** from the `traits.yml` that preceded it, plus `domain` and `data_types`. Five datasets were built both ways: `traits`, `excluded_data`, `contexts`, `locations`, `methods`, `taxonomic_updates` and `taxa` all identical. The additive fields do not even reach the output — `dataset_configure()` subsets `definitions` to the fields the build uses.
+- `config/traits.yml` is empty, and says why in a header rather than by absence.
+- `config/Index.xlsx` retired, its content split four ways: `variables.yml`, `data_types.yml` (11 data types with driver and source URI), `vocabularies.yml` (19 controlled vocabularies), `context_properties.yml`. Recovered from git history if needed.
+- `config/instruments/{licor_6400,licor_6800,lca4}.yml` derived from the corpus.
+- `ausfizz-private/scripts/sync-config.R` replaces the README's `cp` line: checks by default, exits non-zero on drift, `--write` repairs. It also fails on a file present in the private repo but not AusFizz — the more dangerous direction.
 
-### Stage 2 — emit `curves` and `curve_points` from the *existing* metadata
+**One deviation from this plan as written:** data types are a single `config/data_types.yml`, not a `config/data_types/` directory. Eleven short entries read better in one file. Instruments stayed a directory, where the per-file column maps are long.
+
+#### An alias must be an instrument variant, not a name one dataset used
+
+The instrument profiles promote a column name to an `alias` only if two or more datasets use it. This matters more than it sounds: one dataset maps a column called `temp` to `Tleaf`. As a global alias that would silently read *any* file's `temp` column as leaf temperature. Single-dataset names stay in that dataset's own `variables_extra` block. 23 names were held back on this rule.
+
+#### Found in Stage 1, deliberately not fixed
+
+These are data questions, not vocabulary questions. Each needs the source checked, so each is Stage 3 work or its own issue — the same treatment as `collection_date`.
+
+- **`Index.xlsx` had drifted from the file the build enforces, in 16 allowed-value ranges.** `Tleaf`/`Tair` (0–100 vs −20–70), `Patm` (0–110 vs 50–120), `VPDleaf` (max 10 vs 5), `FvFm` (max 1 vs 3000), `f0` (max 5000 vs 3000), and the sign of the minimum on `CO2r`, `CO2s`, `gsw`, `Qin`, `Qout`, `RHr`. `variables.yml` keeps the enforced values, because changing them changes what lands in `excluded_data`. Neither source is uniformly right: `Tleaf` min 0 excludes sub-zero leaf temperatures, and `FvFm` max 3000 is meaningless for a ratio.
+- **Three columns are declared with two different units, each a 1000× discrepancy.** `Trmmol` → `E` as both `mmol{H2O}/m2/s` (10 datasets) and `mol{H2O}/m2/s` (1); the same for the LI-6800 short-form `E`; and `gsw` as both `mol` and `mmol`. LI-COR writes `Trmmol` in mmol, so the odd ones out are likely 1000× wrong in value. Check the source files.
+- **123 of 315 descriptor values do not match a controlled vocabulary**, in four groups: `unknown` was missing from vocabularies that need it (fixed here — `unknown` is data, not an error); compound values composed with `; ` (fixed here via `multiple: yes`); genuine spelling mismatches (`upper canopy` *and* `upper_canopy` in the same corpus for the same thing, neither matching ESS-DIVE's `top of canopy`; `PLC whole segment` vs `PLC wholesegment`; `early morning` vs `morning`); and a **name collision** — AusFizz's `plant_age` holds actual ages (`2 years`, `4-7 years`) in 28 of 30 datasets, while ESS-DIVE's `plantAge` is a life-stage category, and `life_stage` already exists as a dataset field. Recorded in `vocabularies.yml` next to the vocabulary each concerns.
+- **AusFizz's `remake.yml` still declared `packages: traits.build`.** It had never been regenerated after the fork. Regenerated.
+
+### Stage 2 — emit `curves` and `curve_points` from the *existing* metadata — **next**
 
 Before touching a single `metadata.yml`. This proves the model against all 30 datasets while the inputs are still known-good, and produces the reference output Stage 3's migration must reproduce.
 

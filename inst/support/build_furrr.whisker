@@ -9,7 +9,7 @@ library(furrr)
 # Load data resources
 schema <- get_schema()
 resource_metadata <- get_schema("config/metadata.yml", "metadata")
-definitions <- get_schema("config/traits.yml", "traits")
+definitions <- get_definitions()
 unit_conversions <- get_unit_conversions("config/unit_conversions.csv")
 taxon_list <- read_csv_char("config/taxon_list.csv")
 

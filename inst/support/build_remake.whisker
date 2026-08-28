@@ -21,7 +21,7 @@ targets:
     command: get_schema("config/metadata.yml",  I("metadata"))
 
   definitions:
-    command: get_schema("config/traits.yml", I("traits"))
+    command: get_definitions()
 
   unit_conversions:
     command: get_unit_conversions("config/unit_conversions.csv")
