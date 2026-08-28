@@ -1,0 +1,17 @@
+.Rproj.user
+.DS_Store
+ignore
+temp
+*.zip
+*.rds
+*.rda
+.RData
+.Rhistory
+
+ontology/traits.build.html
+ontology/traits.build.rmarkdown
+ontology/index.html
+export/*
+
+# created by the test suite (util_get_SHA fixture), not source
+tests/testthat/.git/

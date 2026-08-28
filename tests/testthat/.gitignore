@@ -1,0 +1,8 @@
+remake.yml
+.git
+.remake
+*.Rproj
+build.R
+export/reports/
+build_info.md
+**/output/schema.yml

@@ -1,0 +1,71 @@
+# ------------------------------------------------
+# CITATION.cff file created with {cffr} R package
+# See also: https://docs.ropensci.org/cffr/
+# ------------------------------------------------
+ 
+cff-version: 1.2.0
+message: 'To cite package "responses.build" in publications use:'
+type: software
+license: BSD-2-Clause
+title: 'responses.build: A Workflow for Harmonising Physiological Response-Curve Data
+  into a Documented Standard Structure'
+version: 0.1.0.9000
+doi: 10.1016/j.ecoinf.2024.102773
+abstract: The `responses.build` package provides a workflow to harmonise physiological
+  response-curve data - leaf gas exchange, hydraulic vulnerability, and fluorescence
+  response curves - from diverse sources into a documented, relational structure. It
+  is a fork of `traits.build` (Wenk et al, 2024, <https://doi.org/10.1016/j.ecoinf.2024.102773>,
+  <https://github.com/traitecoevo/traits.build>), which harmonises single-valued trait
+  data; this package extends the same data model to measurements that form curves. It
+  was built to support AusFizz (<https://github.com/traitecoevo/AusFizz>). For the shared
+  data model and workflow concepts see <https://traitecoevo.github.io/traits.build-book/>.
+authors:
+- family-names: Falster
+  given-names: Daniel
+  email: daniel.falster@unsw.edu.au
+  orcid: https://orcid.org/0000-0002-9814-092X
+- family-names: Wenk
+  given-names: Elizabeth
+  orcid: https://orcid.org/0000-0001-5640-5910
+- family-names: Coleman
+  given-names: David
+  email: david.coleman@mq.edu.au
+- family-names: Yang
+  given-names: Sophie
+  orcid: https://orcid.org/0000-0001-7328-345X
+- family-names: Kar
+  given-names: Fonti
+  orcid: https://orcid.org/0000-0002-2760-3974
+preferred-citation:
+  type: article
+  title: 'traits.build: A data model, workflow and R package for building harmonised
+    ecological trait databases'
+  authors:
+  - family-names: Wenk
+    given-names: Elizabeth
+    orcid: https://orcid.org/0000-0001-5640-5910
+  - family-names: Bal
+    given-names: Payal
+  - family-names: Coleman
+    given-names: David
+  - family-names: Gallagher
+    given-names: Rachael
+  - family-names: Yang
+    given-names: Sophie
+    orcid: https://orcid.org/0000-0001-7328-345X
+  - family-names: Falster
+    given-names: Daniel S.
+  journal: Ecological Informatics
+  year: '2024'
+  volume: '83'
+  doi: 10.1016/j.ecoinf.2024.102773
+  url: https://doi.org/10.1016/j.ecoinf.2024.102773
+  start: '102773'
+repository-code: https://github.com/traitecoevo/responses.build
+url: https://traitecoevo.github.io/responses.build/
+contact:
+- family-names: Falster
+  given-names: Daniel
+  email: daniel.falster@unsw.edu.au
+  orcid: https://orcid.org/0000-0002-9814-092X
+
