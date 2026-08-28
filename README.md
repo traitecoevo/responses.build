@@ -7,7 +7,7 @@
 
 `responses.build` is a workflow for harmonising **physiological response-curve data** — leaf gas exchange, hydraulic vulnerability, and fluorescence response curves — from disconnected primary sources into a documented, relational structure.
 
-It is a fork of [`traits.build`](https://github.com/traitecoevo/traits.build), which harmonises single-valued trait data. That engine assumes a measurement is *one value for one entity*. A response curve is not: it is a set of paired measurements, taken across a driver gradient, that belong together as one identifiable curve. Building [AusFizz](https://github.com/traitecoevo/AusFizz) on `traits.build` meant encoding the driver, the curve identity, and the instrument settings inside the `contexts` block — which works, but makes each dataset's metadata large, repetitive, and hard to query. `responses.build` exists to give response curves a first-class representation instead.
+It is a fork of [`traits.build`](https://github.com/traitecoevo/traits.build), which harmonises single-valued trait data. That engine assumes a measurement is *one value for one entity*. A response curve is not: it is a set of paired measurements, taken across a driver gradient, that belong together as one identifiable curve. Building [AusFizz](https://github.com/traitecoevo/ausfizz) on `traits.build` meant encoding the driver, the curve identity, and the instrument settings inside the `contexts` block — which works, but makes each dataset's metadata large, repetitive, and hard to query. `responses.build` exists to give response curves a first-class representation instead.
 
 ## Status
 
@@ -31,7 +31,7 @@ Both are pinned by tests. Changing either requires a coordinated change in [`aus
 | Repo | What it is |
 |---|---|
 | `responses.build` | This repo: the engine |
-| [`AusFizz`](https://github.com/traitecoevo/AusFizz) | The compilation intended for public release, and the source of truth for shared configuration |
+| [`AusFizz`](https://github.com/traitecoevo/ausfizz) | The compilation intended for public release, and the source of truth for shared configuration |
 | [`ausfizz-private`](https://github.com/traitecoevo/ausfizz-private) | Restricted datasets that cannot be released yet, built by the same pipeline and merged on demand |
 
 Issues for all three are tracked on the [AusFizz board (#19)](https://github.com/orgs/traitecoevo/projects/19), not the family-wide AusTraits board.

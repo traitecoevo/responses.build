@@ -5,7 +5,7 @@ data** — leaf gas exchange, hydraulic vulnerability, fluorescence — into a d
 standard structure. It is a **fork of [`traits.build`](https://github.com/traitecoevo/traits.build)**
 (itself spun out of AusTraits in 2023; Wenk et al. 2024, doi:10.1016/j.ecoinf.2024.102773), created
 because response curves do not fit the one-value-per-entity assumption and were being encoded inside
-the `contexts` block instead. It exists to serve [AusFizz](https://github.com/traitecoevo/AusFizz).
+the `contexts` block instead. It exists to serve [AusFizz](https://github.com/traitecoevo/ausfizz).
 
 **Read [`PLAN.md`](PLAN.md) before changing anything.** It records the fork point, what has been
 decided, and the compatibility constraints below.

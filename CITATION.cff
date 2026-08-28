@@ -17,7 +17,7 @@ abstract: The `responses.build` package provides a workflow to harmonise physiol
   is a fork of `traits.build` (Wenk et al, 2024, <https://doi.org/10.1016/j.ecoinf.2024.102773>,
   <https://github.com/traitecoevo/traits.build>), which harmonises single-valued trait
   data; this package extends the same data model to measurements that form curves. It
-  was built to support AusFizz (<https://github.com/traitecoevo/AusFizz>). For the shared
+  was built to support AusFizz (<https://github.com/traitecoevo/ausfizz>). For the shared
   data model and workflow concepts see <https://traitecoevo.github.io/traits.build-book/>.
 authors:
 - family-names: Falster
