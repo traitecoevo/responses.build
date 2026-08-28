@@ -23,7 +23,8 @@
 - **`custom_R_code` no longer resolves function names through the search path.** It was evaluated in a `new.env()`, whose parent chain reaches whatever a session has attached — so the same snippet could behave differently under `library()`, `responses.build::`, `Rscript` and a `targets` worker. The environment is now built explicitly from `dplyr`, `tidyr`, `stringr`, `readr`, `lubridate` and `magrittr`, ending at `baseenv()`, and `data` is bound into it rather than found by scoping.
 - **`dplyr`, `lubridate`, `readr`, `stringr` and `tidyr` moved from `Depends` to `Imports`**, which the change above makes safe. Scripts that relied on this package attaching them now need their own `library()` calls.
 - New: `get_schema_path()`, `get_definitions_path()`, for pipelines that watch a file rather than its contents.
-- `dataset_report()` is temporarily out of service and says so. Its template is written against the `austraits` reader, whose accessors reject databases built here now the handshake is severed. Stage 6 rewrites it against the curve tables.
+- **`dataset_report()` is rebuilt around the curves.** The template now starts from the 2026 report in `traits.build` (`feature/add-dataset-skill`) and replaces its trait sections with curve ones: every curve drawn against its driver with points in the order recorded, curve-length and point-order diagnostics, each variable's distribution against its allowed range, and the treatment factors. It no longer needs `austraits`.
+- New: `extract_dataset()` and `join_taxa()`, replacing the `austraits` accessors the report used.
 
 ---
 

@@ -62,9 +62,10 @@ metadata against it. This package no longer tracks upstream, and the `austraits`
 - The AusTraits pipeline is still the point of this repository, but as a **data handoff** — derived
   traits written out for `austraits.build` to ingest — not a runtime dependency.
 
-**Consequence:** `dataset_report()` is out of service until Stage 6. Its template is written against
-the `austraits` reader, whose accessors now reject databases built here. It errors with an
-explanation; three tests in `test-setup.R` are skipped naming Stage 6.
+**The dataset report** (`inst/support/report_dataset.Rmd`) is built on the 2026 template from
+`traits.build`'s `feature/add-dataset-skill` branch, with its trait sections replaced by curve ones.
+When that template gains something upstream, take it from there rather than reinventing it — but its
+`Trait measurements` section is the wrong question for this data and should stay replaced.
 
 **`bind_databases()` refuses to guess a licence.** Upstream kept the first argument's metadata and
 dropped the rest, so merging `ausfizz` with `ausfizz-private` stamped the result CC-BY-4.0 while it

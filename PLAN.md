@@ -225,9 +225,34 @@ The environment is now built explicitly: a chain of one environment per package,
 
 **Then `dplyr`, `lubridate`, `readr`, `stringr` and `tidyr` moved from `Depends` to `Imports`**, in that order, with the build diffed after each step. Both diffs were clean. The test suite needed its own `library()` calls, because the tests were relying on `Depends` too.
 
-### Stage 6 — curve-aware reports
+### Stage 6 — curve-aware reports — **done**
 
-Rewrite `inst/support/report_dataset.Rmd` against `curves` / `curve_points`: the curves themselves, per-curve point counts and driver ranges, within-study outlier flagging, coverage tiles. Drive it from a small config so adding a panel is not a package change.
+Rebuilt on the **2026 template Lizzy Wenk has been developing** in `traits.build`
+(`feature/add-dataset-skill`, `inst/support/report_dataset_2026.Rmd`) rather than on the old one.
+That template is much better made — a notetaker collecting questions as the report runs, a leaflet
+map of locations, a proper contexts walk-through, per-plot sizing — and none of that needed
+rewriting. What needed rewriting is everything about traits.
+
+Its `Trait measurements` section — numerical traits and categorical traits, each compared against
+the whole compilation — is the wrong question for curve data. Replaced by **Measurements**:
+
+- **Overview** — data types, how many are curves against single points, which variables and how completely, and what was excluded with the range that rejected it.
+- **The curves** — every curve drawn, response against driver, points in the order recorded, faceted by curve and coloured by taxon. This is board #4's first two asks, and the section the report tells the reader to look at first: a curve that looks wrong here is wrong whatever the tables say.
+- **Curve quality** — curve lengths, curves too short to fit, curves with no recorded point order, variables with two values at one point, and a driver-reversal check.
+- **Variables** — every numeric variable's distribution against its allowed range, so a value sitting near an edge is visible before it is excluded.
+- **Treatments** — the Stage 4 table, plus the levels with no quantity recorded and a question asking for one.
+- **Derived traits** — empty, and says why.
+
+`dataset_report()` is back in service; the three tests skipped since Stage 0 pass. The suite has no
+skips for the first time since then.
+
+#### Two things found by running it
+
+- **A latent bug in the upstream template.** Where a context's `values` list has no `find` key, the column is absent after the join and `dplyr::coalesce(find, value)` resolves `find` to `base::find()`, failing with "must be a vector, not a function". Every context this build generates from a dataset-level descriptor is that shape. Worth reporting back to `traits.build`.
+- **The driver-reversal check had to be calibrated, not guessed.** Counting every sign change flagged 73 of 171 clean A-Ci curves, because `Ci` is *measured*, not set — the protocol steps reference CO2 and Ci follows, wobbling between points. Measured across the corpus at four thresholds: ignoring steps smaller than 5% of the driver range flags 12% of curves, and more than two reversals flags 4%. The report says one in eight trips it, so it reads as a prompt rather than a verdict.
+
+New in the package: `extract_dataset()` and `join_taxa()`, replacing the `austraits` accessors the
+report used to need.
 
 ### Stage 7 — repo structure and docs
 

@@ -42,6 +42,7 @@ Imports:
 Suggests:
     targets,
     tarchetypes,
+    base64enc,
     forcats,
     leaflet,
     bibtex,

@@ -5,7 +5,7 @@
 #' The reports are rendered as html files and saved in the specified output folder.
 #'
 #' @param dataset_id Name of specific study/dataset
-#' @param austraits Compiled austraits database
+#' @param database A built database
 #' @param overwrite Logical value to determine whether to overwrite existing report
 #' @param output_path Location where rendered report will be saved
 #' @param input_file Report script (.Rmd) file to build study report
@@ -18,33 +18,17 @@
 #'   whose report fails to render warns and returns `FALSE` rather than aborting
 #'   the batch.
 #' @export
-dataset_report <- function(dataset_id, austraits, overwrite = FALSE,
+dataset_report <- function(dataset_id, database, overwrite = FALSE,
                            output_path = "export/reports",
                            input_file = system.file("support", "report_dataset.Rmd", package = "responses.build"),
                            quiet = TRUE, keep = FALSE) {
-
-  # The report template is still written against the `austraits` reader --
-  # `extract_dataset()`, `extract_data()`, `plot_trait_distribution_beeswarm()`
-  # -- and those refuse to run on a database this package now builds, because
-  # `austraits::check_compatibility()` string-matches the `isCompiledBy` URL
-  # that Stage 0 made honest. Failing here with an explanation beats failing
-  # inside a child process with a compatibility error nobody can place.
-  # Stage 6 rewrites the template against `curves` / `curve_points`.
-  stop(
-    "`dataset_report()` is out of service.\n",
-    "Its template is written against the `austraits` reader, whose accessors ",
-    "reject databases built by responses.build now that the compatibility ",
-    "handshake is severed. It is rewritten against the curve tables in Stage 6 ",
-    "-- see PLAN.md.",
-    call. = FALSE
-  )
 
   built <- vapply(
     dataset_id,
     function(d) {
       dataset_report_worker(
         dataset_id = d,
-        austraits = austraits,
+        database = database,
         overwrite = overwrite,
         output_path = output_path,
         input_file = input_file,
@@ -58,7 +42,7 @@ dataset_report <- function(dataset_id, austraits, overwrite = FALSE,
   invisible(built)
 }
 
-dataset_report_worker <- function(dataset_id, austraits, overwrite = FALSE,
+dataset_report_worker <- function(dataset_id, database, overwrite = FALSE,
                                   output_path = "export/reports",
                                   input_file = system.file("support", "report_dataset.Rmd", package = "responses.build"),
                                   quiet = TRUE, keep = FALSE) {
@@ -100,7 +84,7 @@ dataset_report_worker <- function(dataset_id, austraits, overwrite = FALSE,
         quiet = quiet,
         params = list(
           dataset_id = dataset_id,
-          austraits = austraits
+          database = database
         )
       ),
       silent = TRUE
