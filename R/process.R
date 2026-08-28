@@ -74,6 +74,9 @@ dataset_configure <- function(
 #' @param data_types Data type definitions, used to say what each curve is
 #' measured across. Defaults to `config/data_types.yml` if present; without it
 #' curves are still identified but carry no `driver`.
+#' @param vocabularies Descriptor vocabularies, used to expand dataset-level
+#' descriptors into their constant column and context entry. Defaults to
+#' `config/vocabularies.yml` if present.
 #'
 #' @return List, database object
 #' @export
@@ -96,7 +99,8 @@ dataset_process <- function(filename_data_raw,
                             resource_metadata,
                             unit_conversion_functions,
                             filter_missing_values = TRUE,
-                            data_types = get_data_types()) {
+                            data_types = get_data_types(),
+                            vocabularies = get_vocabularies()) {
 
   dataset_id <- config_for_dataset$dataset_id
   metadata <- config_for_dataset$metadata
@@ -106,6 +110,13 @@ dataset_process <- function(filename_data_raw,
   traits <-
     readr::read_csv(filename_data_raw, col_types = cols(), guess_max = 100000, progress = FALSE) %>%
     process_custom_code(metadata[["dataset"]][["custom_R_code"]])()
+
+  # A descriptor is a property constant for the whole dataset -- the instrument,
+  # the growth environment. Declared once in `dataset:`, it becomes the constant
+  # column and the context entry that used to be hand-written twice each.
+  expanded <- process_expand_descriptors(traits, metadata, vocabularies, dataset_id)
+  traits <- expanded$data
+  metadata <- expanded$metadata
 
   # Load and process contextual data
   contexts <-

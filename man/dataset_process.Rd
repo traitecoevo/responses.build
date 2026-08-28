@@ -11,7 +11,8 @@ dataset_process(
   resource_metadata,
   unit_conversion_functions,
   filter_missing_values = TRUE,
-  data_types = get_data_types()
+  data_types = get_data_types(),
+  vocabularies = get_vocabularies()
 )
 }
 \arguments{
@@ -31,6 +32,10 @@ change to false to see the rows with missing values}
 \item{data_types}{Data type definitions, used to say what each curve is
 measured across. Defaults to \code{config/data_types.yml} if present; without it
 curves are still identified but carry no \code{driver}.}
+
+\item{vocabularies}{Descriptor vocabularies, used to expand dataset-level
+descriptors into their constant column and context entry. Defaults to
+\code{config/vocabularies.yml} if present.}
 }
 \value{
 List, database object

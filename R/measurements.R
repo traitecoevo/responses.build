@@ -219,3 +219,166 @@ metadata_expand_measurements <- function(metadata, instruments = list(),
   metadata[["traits"]] <- traits
   metadata
 }
+
+
+#' Load the controlled vocabularies for measurement descriptors
+#'
+#' Reads `config/vocabularies.yml`. Each entry gives a descriptor's context
+#' `category` and the values it may take.
+#'
+#' @param path Path to the vocabularies. Defaults to `config/vocabularies.yml`,
+#'   if it exists.
+#'
+#' @return A named list of vocabularies, empty if there is no file
+#' @export
+get_vocabularies <- function(path = NULL) {
+
+  if (is.null(path)) {
+    if (!file.exists("config/vocabularies.yml")) return(list())
+    path <- "config/vocabularies.yml"
+  }
+
+  if (!file.exists(path)) {
+    stop("No vocabularies at ", path, call. = FALSE)
+  }
+
+  out <- yaml::read_yaml(path)
+
+  if (is.null(out[["vocabularies"]][["elements"]])) {
+    stop(path, " has no `vocabularies: elements:` block.", call. = FALSE)
+  }
+
+  out[["vocabularies"]][["elements"]]
+}
+
+
+#' Expand dataset-level descriptors into data columns and contexts
+#'
+#' A descriptor is a property that is constant for a whole dataset: which
+#' instrument was used, whether the plant was potted or in the ground, whether
+#' the leaf was attached. Measured across the 2026-08 AusFizz corpus, twelve of
+#' them appear in 24 to 30 of the 31 datasets, and each was written **twice** --
+#' once as a literal inside `custom_R_code`, creating a column of one repeated
+#' value, and again as a `contexts` entry naming the column just created.
+#'
+#' Written once now, in the `dataset:` block:
+#'
+#' ```yaml
+#' dataset:
+#'   instrument: Li6400 IRGA
+#'   growth_environment: controlled environment chamber
+#'   leaf_status: attached leaf
+#' ```
+#'
+#' This puts back what the two hand-written halves used to: the constant column
+#' and the context entry, with the category taken from `config/vocabularies.yml`
+#' so it cannot be got wrong per dataset. The built database is unchanged.
+#'
+#' It is safe to append these to the end of the contexts list only because
+#' context ids no longer depend on the order properties are listed in. Before
+#' that fix, appending would have silently relabelled `treatment_context_id`.
+#'
+#' @param data The dataset's data, after `custom_R_code` has run
+#' @param metadata The dataset's metadata
+#' @param vocabularies Descriptor vocabularies, from [get_vocabularies()]
+#' @param dataset_id The dataset, used in error messages
+#'
+#' @return A list with the augmented `data` and `metadata`
+#' @noRd
+process_expand_descriptors <- function(data, metadata, vocabularies = list(),
+                                       dataset_id = "this dataset") {
+
+  if (length(vocabularies) == 0) return(list(data = data, metadata = metadata))
+
+  present <- intersect(names(vocabularies), names(metadata[["dataset"]]))
+
+  if (length(present) == 0) return(list(data = data, metadata = metadata))
+
+  already <- vapply(metadata[["contexts"]], function(x) x[["context_property"]] %||% "",
+                    character(1))
+
+  for (name in present) {
+    value <- metadata[["dataset"]][[name]]
+
+    if (is.null(value) || all(is.na(value))) next
+
+    if (name %in% names(data)) {
+      stop(dataset_id, ": `", name, "` is declared as a dataset descriptor but ",
+           "is also a column in the data. It has to be one or the other.",
+           call. = FALSE)
+    }
+
+    category <- vocabularies[[name]][["category"]]
+    if (is.null(category)) {
+      stop(dataset_id, ": descriptor `", name, "` has no `category` in ",
+           "config/vocabularies.yml, so there is nowhere to put it.",
+           call. = FALSE)
+    }
+
+    data[[name]] <- as.character(value)
+
+    if (!name %in% already) {
+      metadata[["contexts"]] <- c(
+        metadata[["contexts"]],
+        list(list(context_property = name, category = category, var_in = name))
+      )
+    }
+  }
+
+  list(data = data, metadata = metadata)
+}
+
+
+#' Report descriptor values that are not in their controlled vocabulary
+#'
+#' The vocabularies are documentation of what a value may be, drawn mostly from
+#' the ESS-DIVE leaf gas exchange standard and the Prometheus protocols. They
+#' are not enforced at build time: measured across AusFizz, 73 of 315 declared
+#' values sit outside their vocabulary, and most of those are real questions
+#' about the data rather than typos -- `plant_age` holds actual ages where
+#' ESS-DIVE expects a life stage, and `upper canopy` and `upper_canopy` both
+#' appear for the same thing.
+#'
+#' Failing a build on those would block work on a documentation question. This
+#' reports them instead.
+#'
+#' @param path Directory of dataset folders, default `data`
+#' @param vocabularies Descriptor vocabularies, from [get_vocabularies()]
+#'
+#' @return A tibble of dataset, descriptor and off-vocabulary value
+#' @importFrom rlang .data
+#' @export
+check_vocabularies <- function(path = "data", vocabularies = get_vocabularies()) {
+
+  out <- list()
+
+  for (id in list.dirs(path, recursive = FALSE, full.names = FALSE)) {
+    f <- file.path(path, id, "metadata.yml")
+    if (!file.exists(f)) next
+    metadata <- read_metadata(f)
+
+    for (name in intersect(names(vocabularies), names(metadata[["dataset"]]))) {
+      allowed <- unlist(vocabularies[[name]][["values"]])
+      if (is.null(allowed)) next
+      value <- as.character(metadata[["dataset"]][[name]])
+      if (is.null(value) || is.na(value)) next
+      # A field marked `multiple` composes several values with "; "
+      parts <- if (isTRUE(vocabularies[[name]][["multiple"]])) {
+        trimws(strsplit(value, ";")[[1]])
+      } else value
+      bad <- setdiff(parts, allowed)
+      if (length(bad) > 0) {
+        out[[length(out) + 1]] <- tibble::tibble(
+          dataset_id = id, descriptor = name, value = bad
+        )
+      }
+    }
+  }
+
+  if (length(out) == 0) {
+    return(tibble::tibble(dataset_id = character(0), descriptor = character(0),
+                          value = character(0)))
+  }
+
+  dplyr::bind_rows(out)
+}

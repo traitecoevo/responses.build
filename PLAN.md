@@ -142,7 +142,7 @@ curve_points  dataset_id, curve_id, point_id, <one column per variable>
 - **`Drake_2015` has three raw CSVs and no `metadata.yml`.** It is board issue #3 waiting to happen, and the reason `remake.yml` carries 31 targets for 32 data folders.
 - **`n_points` is character**, like every other column of every other table in this data model, so a written CSV reads back as what the database held.
 
-### Stage 3 — metadata schema v2, and migrate all 30 — **done, with one part deferred**
+### Stage 3 — metadata schema v2, and migrate all 30 — **done**
 
 `traits:` is replaced by `measurements:` — one block per data file, desugared in `dataset_configure()` into the `traits:` list the rest of the build understands. A dataset names its instrument instead of restating twenty column mappings, and writes its methods paragraph once instead of once per variable.
 
@@ -163,17 +163,17 @@ measurements:
 
 **Result: 8,872 metadata lines → 5,832 (34% smaller), 386 mappings → 38 measurement blocks, 36 methods entries → 36 written once instead of 386 times.** The gate passed strictly: every table — `traits`, `curves`, `curve_points`, `contexts`, `methods`, `excluded_data`, `locations`, `taxa`, `definitions`, `metadata` — is identical before and after.
 
-#### Deferred: the 12 descriptors stay in `contexts:` for now
+#### The descriptors moved after all, once ids stopped depending on file order
 
-This plan said they would become `dataset:` fields, and estimated 2,500–3,000 lines. **They did not, and the honest number is 5,832.**
+This was deferred at first. The 12 descriptors constant per dataset were each written **twice** — a literal in `custom_R_code` creating a column of one repeated value, and a `contexts` entry naming that column. Removing either relabelled ids that had nothing to do with them, because the id for a context combination was assigned by sorting a key pasted **in metadata order**.
 
-Measured while implementing: reversing a dataset's `contexts:` list leaves `curve_points` byte-identical and the curve-to-point grouping identical, but **permutes the integer labels of `treatment_context_id`** — 03 and 02 swap. The partition is the same; only the names of its parts move. Promoting the descriptors out of `contexts:` reorders that list, so it relabels ids.
+That is a defect in its own right — the same class as the locale-collation bug upstream already fixed — so it was fixed rather than worked around: `process_create_context_ids()` now sorts the properties first, as `observation_id` and `location_id` already did. **That relabels ids once**, verified across all 30 datasets to be a relabelling and never a regrouping, and recorded in `NEWS.md`.
 
-Those labels are published output that a saved analysis may join on. A migration whose whole premise is "nothing changes" must not smuggle them, so this half is deferred rather than forced.
+With that in place, promoting the descriptors is provably safe: a value identical on every row contributes nothing to what makes combinations distinct, so removing it cannot change the partition. Verified on four datasets first, then on all 30 — every id column came out **identical**, not merely relabelled.
 
-**The right fix is upstream of the migration: context ids should not depend on the order somebody happened to write YAML in.** `process_generate_id()` already sorts for `observation_id`; the context ids do not. That is the same class of defect as the locale-collation bug upstream already fixed — a build that depends on incidental input order. Make ids order-independent, accept the one-time relabelling deliberately and with a NEWS entry, and the descriptors can then move for free. **Its own stage, its own decision.**
+**Final result: 8,872 metadata lines → 4,964, a 44% reduction, with every table of the built database identical.** Five datasets now have no `custom_R_code` at all.
 
-#### Two bugs the gate caught, which review would not have
+A descriptor is promoted only when its `contexts` entry is a plain reference to its own column. Three entries across the corpus have `var_in` naming a different column (`Curve routine`, `position`) — those properties vary within their dataset and are not descriptors — and those stay.#### Two bugs the gate caught, which review would not have
 
 - **`use:` was applied after `variables_extra` was merged**, so it filtered out every variable the instrument profile did not cover. `excluded_data` fell from 14,782 rows to 1,029 and `methods` from 350 to 293. `use` and `column_suffix` describe the *profile*; extras are written out in full and come after.
 - **Coverage was decided on `var_in` and `unit_in` alone**, so a mapping overriding `value_type` or `replicates` was folded into `use:` and silently took the defaults — 14 entries in `Bloomfield_2014_a` went from `mean`/5 replicates to `raw`/1. A mapping is covered only if it also takes every default.
@@ -182,6 +182,7 @@ Both were invisible in the migrated YAML and obvious in the diff of the built ob
 
 #### Found in Stage 3, deliberately not fixed
 
+- **`check_vocabularies()` reports 73 of 315 descriptor values sitting outside their controlled vocabulary**, and does not enforce them. Most are real questions about the data, not typos: `plant_age` holds actual ages where ESS-DIVE expects a life stage, and `upper canopy` and `upper_canopy` both appear for the same thing. Failing a build on those would block work on a documentation question.
 - **`collection_date` is still d/m/Y in 19 of 30 datasets.** `3/12/2010` cannot be told from `12/3/2010` without the source file, so the migration reports and never converts. Needs a person with the original data; its own board issue.
 - Nine datasets match no instrument profile and keep their mappings as `variables_extra`. `Krishnananthaselvan_2024` (4 methods, 25 mappings), `Drake_2017` and `Kumarathunge_2018` are the largest. Not a defect — they are hydraulic or hand-transcribed files with no shared column vocabulary to factor out.
 
