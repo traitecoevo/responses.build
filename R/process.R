@@ -872,7 +872,18 @@ process_create_context_ids <- function(data, contexts) {
     xx <- contexts %>%
       dplyr::filter(.data$category == w)
 
-    vars <- unique(xx[["context_property"]])
+    # Sorted, not file order. The id for a context combination is assigned by
+    # sorting the string that `unite()` builds below, so pasting the properties
+    # in whatever order the metadata happened to list them made the ids depend
+    # on that order: reversing a dataset's `contexts:` block left the grouping
+    # identical but swapped the labels `02` and `03` on `treatment_context_id`.
+    #
+    # A build must not depend on incidental input order -- the same reasoning
+    # that made `observation_id` and `location_id` sort, and that fixed the
+    # locale-collation defect before them. Sorting here makes the labels a
+    # function of the data, so a dataset can reorder, add or move a context
+    # property without relabelling the ones it did not touch.
+    vars <- util_sort_locale_independent(unique(xx[["context_property"]]))
 
     make_id <- function(x) {
       sprintf(paste0("%0", max(2, ceiling(log10(x)), na.rm = TRUE), "d"), x)

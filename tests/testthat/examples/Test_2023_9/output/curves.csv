@@ -1,18 +1,18 @@
 dataset_id,curve_id,data_type,driver,driver_outer,taxon_name,observation_id,individual_id,population_id,collection_date,location_id,treatment_context_id,entity_context_id,temporal_context_id,method_context_id,instrument,n_points,point_order
-Test_2023_9,001,,,,Acacia celsa,001,01,01,2002/2002,01,01,03,,03,,1,file order
-Test_2023_9,002,,,,Acacia celsa,002,01,01,2004/2004,01,01,03,,03,,1,file order
-Test_2023_9,003,,,,Acacia celsa,003,02,01,2004/2004,01,01,03,,03,,1,file order
+Test_2023_9,001,,,,Acacia celsa,001,01,01,2002/2002,01,01,03,,04,,1,file order
+Test_2023_9,002,,,,Acacia celsa,002,01,01,2004/2004,01,01,03,,04,,1,file order
+Test_2023_9,003,,,,Acacia celsa,003,02,01,2004/2004,01,01,03,,04,,1,file order
 Test_2023_9,004,,,,Acacia celsa,004,,01,2004/2004,01,01,03,,02,,1,file order
-Test_2023_9,005,,,,Acacia celsa,004,,01,2004/2004,01,01,03,,03,,1,file order
-Test_2023_9,006,,,,Acacia celsa,005,,,2004/2004,,01,03,,03,,1,file order
+Test_2023_9,005,,,,Acacia celsa,004,,01,2004/2004,01,01,03,,04,,1,file order
+Test_2023_9,006,,,,Acacia celsa,005,,,2004/2004,,01,03,,04,,1,file order
 Test_2023_9,007,,,,Acmena graveolens,006,01,08,2002/2002,02,,06,,,,1,file order
 Test_2023_9,008,,,,Acmena graveolens,007,,08,2004/2004,02,,06,,01,,1,file order
 Test_2023_9,009,,,,Acmena graveolens,007,,08,2004/2004,02,,06,,,,1,file order
-Test_2023_9,010,,,,Acronychia acidula,008,01,02,2002/2002,01,01,09,,03,,1,file order
-Test_2023_9,011,,,,Acronychia acidula,009,01,02,2004/2004,01,01,09,,03,,1,file order
+Test_2023_9,010,,,,Acronychia acidula,008,01,02,2002/2002,01,01,09,,04,,1,file order
+Test_2023_9,011,,,,Acronychia acidula,009,01,02,2004/2004,01,01,09,,04,,1,file order
 Test_2023_9,012,,,,Acronychia acidula,010,,02,2004/2004,01,01,09,,02,,1,file order
-Test_2023_9,013,,,,Acronychia acidula,010,,02,2004/2004,01,01,09,,03,,1,file order
-Test_2023_9,014,,,,Acronychia acidula,011,,,2004/2004,,01,09,,03,,1,file order
+Test_2023_9,013,,,,Acronychia acidula,010,,02,2004/2004,01,01,09,,04,,1,file order
+Test_2023_9,014,,,,Acronychia acidula,011,,,2004/2004,,01,09,,04,,1,file order
 Test_2023_9,015,,,,Aleurites rockinghamensis,012,01,08,2002/2002,02,,06,,,,1,file order
 Test_2023_9,016,,,,Aleurites rockinghamensis,013,,08,2004/2004,02,,06,,01,,1,file order
 Test_2023_9,017,,,,Aleurites rockinghamensis,013,,08,2004/2004,02,,06,,,,1,file order
@@ -72,7 +72,7 @@ Test_2023_9,070,,,,Gillbeea adenopetala,052,,08,2004/2004,02,,,,01,,1,file order
 Test_2023_9,071,,,,Gillbeea adenopetala,052,,08,2004/2004,02,,,,,,1,file order
 Test_2023_9,072,,,,Glochidion hylandii,053,01,04,2002/2002,01,02,04,,05,,1,file order
 Test_2023_9,073,,,,Glochidion hylandii,054,01,04,2004/2004,01,02,04,,05,,1,file order
-Test_2023_9,074,,,,Glochidion hylandii,055,,04,2004/2004,01,02,04,,04,,1,file order
+Test_2023_9,074,,,,Glochidion hylandii,055,,04,2004/2004,01,02,04,,03,,1,file order
 Test_2023_9,075,,,,Glochidion hylandii,055,,04,2004/2004,01,02,04,,05,,1,file order
 Test_2023_9,076,,,,Haplostichanthus submontanus,056,01,08,2002/2002,02,,,,,,1,file order
 Test_2023_9,077,,,,Haplostichanthus submontanus,057,,08,2004/2004,02,,,,01,,1,file order
@@ -85,7 +85,7 @@ Test_2023_9,083,,,,Hernandia albiflora,061,,08,2004/2004,02,,,,01,,1,file order
 Test_2023_9,084,,,,Hernandia albiflora,061,,08,2004/2004,02,,,,,,1,file order
 Test_2023_9,085,,,,Homalanthus novo-guineensis,062,01,05,2002/2002,01,03,08,,05,,1,file order
 Test_2023_9,086,,,,Homalanthus novo-guineensis,063,01,05,2004/2004,01,03,08,,05,,1,file order
-Test_2023_9,087,,,,Homalanthus novo-guineensis,064,,05,2004/2004,01,03,08,,04,,1,file order
+Test_2023_9,087,,,,Homalanthus novo-guineensis,064,,05,2004/2004,01,03,08,,03,,1,file order
 Test_2023_9,088,,,,Homalanthus novo-guineensis,064,,05,2004/2004,01,03,08,,05,,1,file order
 Test_2023_9,089,,,,Homalanthus novo-guineensis,065,,,2004/2004,,03,08,,05,,1,file order
 Test_2023_9,090,,,,Ixora biflora,066,01,08,2002/2002,02,,,,,,1,file order
