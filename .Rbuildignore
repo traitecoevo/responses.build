@@ -32,3 +32,5 @@ _pkgdown.yml$
 ^AGENTS\.md$
 ^\.lintr$
 ^CITATION\.cff$
+^PLAN\.md$
+^scripts$
