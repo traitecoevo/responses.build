@@ -254,9 +254,12 @@ skips for the first time since then.
 New in the package: `extract_dataset()` and `join_taxa()`, replacing the `austraits` accessors the
 report used to need.
 
-### Stage 7 — repo structure and docs
+### Stage 7 — repo structure and docs — **done, one item deferred**
 
-The build-and-reshape half of `ausfizz/scripts/AusFizz_demo.qmd` becomes a vignette here; the exploration half stays in AusFizz. Make the `ausfizz-private` config sync enforced rather than documented. Stub `export_traits_dataset()` so the AusTraits handoff is visible before curve fitting exists.
+- **`AusFizz_demo.qmd` no longer reshapes anything.** Its first half — flatten, pivot, strip `context:` prefixes, re-derive `curve_id` with `cur_group_id()` — was the engine's job and is gone. What is left is exploring: it reads `curves` and `curve_points` straight from `tar_read()`, and gained sections on the treatment factors and on curve quality across the compilation. Renders clean.
+- **`ontology/` removed**, and **purged from history**. See the note under inherited debt.
+- **`ausfizz-private` config sync is enforced**, not documented: `scripts/sync-config.R` checks by default and exits non-zero on drift. It already caught one real drift — `treatment_factors.yml` present in the private repo and not registered as shared.
+- **`export_traits_dataset()` deferred** at the maintainer's call: there are no derived traits yet, so a stub would be a guess at a format nothing produces. It belongs with curve fitting.
 
 ## Invariant: the migration must not change `curves` or `curve_points`
 

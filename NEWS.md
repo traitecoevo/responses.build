@@ -25,6 +25,7 @@
 - New: `get_schema_path()`, `get_definitions_path()`, for pipelines that watch a file rather than its contents.
 - **`dataset_report()` is rebuilt around the curves.** The template now starts from the 2026 report in `traits.build` (`feature/add-dataset-skill`) and replaces its trait sections with curve ones: every curve drawn against its driver with points in the order recorded, curve-length and point-order diagnostics, each variable's distribution against its allowed range, and the treatment factors. It no longer needs `austraits`.
 - New: `extract_dataset()` and `join_taxa()`, replacing the `austraits` accessors the report used.
+- **Removed the `ontology/` directory, and purged it from the repository's history.** It was upstream's -- 134 terms describing a 13-table data model, published at `w3id.org/traits.build`, which serves traits.build's own copy. This package builds 17 tables and means derived parameters by `traits`, so the terms described a database it does not build. A `responses.build` ontology is worth having once curve fitting settles the derived-trait terms.
 
 ---
 
