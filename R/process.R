@@ -131,6 +131,12 @@ dataset_process <- function(filename_data_raw,
   # the two a dataset does.
   traits <- util_restore_descriptors(traits, metadata, vocabularies)
 
+  # Keep a handle on the dataset's own metadata. Further down, `metadata` is
+  # reassigned to the *compilation's* resource metadata and reused under the
+  # same name, so anything reading the dataset's blocks after that point gets
+  # the wrong object -- silently, since both are lists with a `contexts` key.
+  dataset_metadata <- metadata
+
   # A descriptor is by definition constant for the whole dataset. Custom code
   # runs after it is set and could overwrite it with something that varies --
   # and six AusFizz datasets computed `data_type` with an `ifelse` while also
@@ -414,7 +420,7 @@ dataset_process <- function(filename_data_raw,
   # context keeps its id and its link to the measurements, and this says what
   # the treatment was rather than which rows had it.
   treatments <- process_create_treatments(
-    metadata, context_ids$contexts, treatment_factors, dataset_id
+    dataset_metadata, context_ids$contexts, treatment_factors, dataset_id
   )
 
   # Combine for final output

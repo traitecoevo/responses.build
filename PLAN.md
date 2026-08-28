@@ -186,9 +186,24 @@ Both were invisible in the migrated YAML and obvious in the diff of the built ob
 - **`collection_date` is still d/m/Y in 19 of 30 datasets.** `3/12/2010` cannot be told from `12/3/2010` without the source file, so the migration reports and never converts. Needs a person with the original data; its own board issue.
 - Nine datasets match no instrument profile and keep their mappings as `variables_extra`. `Krishnananthaselvan_2024` (4 methods, 25 mappings), `Drake_2017` and `Kumarathunge_2018` are the largest. Not a defect — they are hydraulic or hand-transcribed files with no shared column vocabulary to factor out.
 
-### Stage 4 — treatments as numbers
+### Stage 4 — treatments as numbers — **done**
 
-Each treatment level carries named, united, numeric factors, defined in `config/treatment_factors.yml` so a factor means the same thing in every study. `experimental_manipulation` becomes derived, not authored. Where a study reports a qualitative level and no number, `factors` is absent and `label` carries it — **do not invent numbers**.
+A treatment was recorded as a verbatim level and a sentence — `elevated`, "plants grown in 3 degrees C above ambient temperatures". Readable, and useless for comparing studies: `elevated` is +3 C in one and +4 in another, `ambient` CO2 is 400 ppm in one and 280 in another, and nothing could tell without a person reading 45 sentences.
+
+A `treatments:` block now attaches named, united numbers to a treatment level, and the build emits a `treatments` table. **Additive**: the `treatment_context` keeps its id and its link to the measurements — it answers "which rows had this treatment" — while the new table answers "what was the treatment". Moving treatments out of `contexts` would relabel ids for no gain.
+
+`config/treatment_factors.yml` defines the factors, so `growth_air_temperature_offset` means the same thing in every study, and a dataset naming a different unit is an error rather than a variant.
+
+**Result: 90 rows across 11 datasets, 74 carrying a factor.** `Ghannoum_2010_a`'s 3×2 factorial now resolves from a `treatment_context_id` to day/night temperature and absolute CO2. Every other table is identical.
+
+#### An absent number is the record, not a gap
+
+16 of the 90 rows carry a label and no factor. Most water treatments are `well-watered` against `water deficit` with no quantity stated anywhere, and two things were deliberately **not** extracted:
+
+- `Gimeno_2016`'s elevated CO2 "varied between 60 ppm initially - 150 ppm" — a range is not a value.
+- `Drake_2016_b`'s three temperature levels each say "**Probably** corresponds to..." — a number recorded as certain that the source recorded as a guess is worse than no number.
+
+An offset of `0` for a control is not an invention: the factor is defined relative to the control of the same experiment, so the control is zero by definition.
 
 ### Stage 5 — targets
 
