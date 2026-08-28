@@ -286,7 +286,8 @@ write_metadata <- function(data, path, style_code = FALSE) {
 
 
   txt <- yaml::as.yaml(y, column.major = FALSE, indent = 2) %>%
-    gsub(": ~", ":", ., fixed = TRUE)
+    gsub(": ~", ":", ., fixed = TRUE) %>%
+    util_flow_style_lists()
 
 
   # Reinsert custom R code
@@ -482,4 +483,59 @@ util_pipeline_columns <- function(schema) {
   cols <- names(schema[["austraits"]][["elements"]][["measurements"]][["elements"]])
   cols <- setdiff(cols, c("response_id", "point_id"))
   replace(cols, cols == "variable", "trait_name")
+}
+
+
+#' Write short lists of plain names on one line
+#'
+#' A `use:` block naming nineteen variables costs nineteen lines as a YAML
+#' block sequence and one as a flow sequence. The content is identical; the
+#' block form just makes a protocol harder to read past.
+#'
+#' Only applied to keys whose items are all plain names -- no spaces, quotes or
+#' punctuation that would need quoting in flow style -- so this cannot change
+#' what the file parses to. Anything else is left as a block.
+#'
+#' @param txt The rendered YAML
+#' @param keys Keys whose lists should be written inline
+#'
+#' @return The YAML, with those lists collapsed
+#' @noRd
+util_flow_style_lists <- function(txt, keys = c("use", "aliases", "matches")) {
+
+  lines <- strsplit(txt, "\n", fixed = TRUE)[[1]]
+  out <- character(0)
+  i <- 1
+
+  plain <- function(x) grepl("^[A-Za-z_][A-Za-z0-9_.-]*$", x)
+
+  while (i <= length(lines)) {
+    line <- lines[[i]]
+    m <- regmatches(line, regexec("^(\\s*)([a-z_]+):\\s*$", line))[[1]]
+
+    if (length(m) == 3 && m[[3]] %in% keys) {
+      indent <- m[[2]]
+      j <- i + 1
+      items <- character(0)
+
+      # Items of a block sequence are indented at least as far as the key
+      while (j <= length(lines) &&
+             grepl(sprintf("^%s\\s*- \\S", indent), lines[[j]])) {
+        items <- c(items, sub(sprintf("^%s\\s*- ", indent), "", lines[[j]]))
+        j <- j + 1
+      }
+
+      if (length(items) > 0 && all(plain(items))) {
+        out <- c(out, sprintf("%s%s: [%s]", indent, m[[3]],
+                              paste(items, collapse = ", ")))
+        i <- j
+        next
+      }
+    }
+
+    out <- c(out, line)
+    i <- i + 1
+  }
+
+  paste(out, collapse = "\n")
 }
