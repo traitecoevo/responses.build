@@ -34,7 +34,7 @@ Both are pinned by tests. Changing either requires a coordinated change in [`aus
 | [`AusFizz`](https://github.com/traitecoevo/ausfizz) | The compilation intended for public release, and the source of truth for shared configuration |
 | [`ausfizz-private`](https://github.com/traitecoevo/ausfizz-private) | Restricted datasets that cannot be released yet, built by the same pipeline and merged on demand |
 
-Issues for all three are tracked on the [AusFizz board (#19)](https://github.com/orgs/traitecoevo/projects/19), not the family-wide AusTraits board.
+**File issues here for all three**, including data issues about the compilations. `ausfizz` and `ausfizz-private` are private, and Actions are blocked on private repos across the org, so issues filed there never reach the board; this repo is public, where Actions are unmetered. Everything auto-adds to the [AusFizz board (#19)](https://github.com/orgs/traitecoevo/projects/19), not the family-wide AusTraits board. This repo is public — keep restricted data out of issues.
 
 Splitting the data across two repositories is lossless: building AusFizz's datasets in two groups and binding them with `austraits::bind_databases()` reproduces every table of a single combined build exactly. The merged object keeps only one `metadata` block.
 
