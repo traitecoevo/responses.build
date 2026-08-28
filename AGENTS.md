@@ -107,14 +107,27 @@ them there:
 - **[`governance/`](https://github.com/traitecoevo/austraits-meta/tree/main/governance)** —
   label taxonomy, board #9 conventions, release playbooks, triage.
 
-**Filing issues:** this repo tracks to its own board,
-[AusFizz #19](https://github.com/orgs/traitecoevo/projects/19), shared with `AusFizz` and
-`ausfizz-private` (new issues auto-add to it) — *not* the family-wide
-[AusTraits #9](https://github.com/orgs/traitecoevo/projects/9). Board #19 mirrors #9's field
-conventions (Status, Priority, Area) and this repo's labels are identical to `traits.build`'s.
-Follow the [issue & labelling guide](https://github.com/traitecoevo/austraits-meta/blob/main/governance/issue-guide.md):
+### Filing issues: **file them here**, even when they are about the data
+
+**This repo is the issue tracker for the whole AusFizz effort** — the engine, the `ausfizz`
+compilation, and `ausfizz-private`. File data issues here too, and label them.
+
+The reason is mechanical, not editorial. `ausfizz` and `ausfizz-private` are private, and Actions
+are blocked on private repos across the `traitecoevo` org (free plan, allowance exhausted), so
+their own `add-to-project` hooks cannot run and issues filed there never reach the board. This repo
+is **public**, where Actions are unmetered, so filing here works and costs nothing. Their hooks are
+left in place and will start working on their own if private-repo billing is ever restored.
+
+Issues auto-add to [AusFizz #19](https://github.com/orgs/traitecoevo/projects/19) — *not* the
+family-wide [AusTraits #9](https://github.com/orgs/traitecoevo/projects/9). Board #19 mirrors #9's
+field conventions (Status, Priority, Area) and this repo's labels are identical to
+`traits.build`'s. Follow the
+[issue & labelling guide](https://github.com/traitecoevo/austraits-meta/blob/main/governance/issue-guide.md):
 pick one work-type label (`bug` / `task` / `epic`); Status, Priority and Area are set on the board,
-not as labels.
+not as labels. Use `Area: data` on the board to separate compilation issues from engine ones.
+
+**This repo is public.** Do not paste restricted data, contributor correspondence, or anything from
+`ausfizz-private` into an issue here.
 
 **Commit messages:** every family repo squash-merges, so the **PR title and body become the permanent
 commit message**. Keep the subject ≤50 characters as typed and the body ≤10 lines; put the working
