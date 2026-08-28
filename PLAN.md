@@ -99,7 +99,7 @@ These are data questions, not vocabulary questions. Each needs the source checke
 - **123 of 315 descriptor values do not match a controlled vocabulary**, in four groups: `unknown` was missing from vocabularies that need it (fixed here — `unknown` is data, not an error); compound values composed with `; ` (fixed here via `multiple: yes`); genuine spelling mismatches (`upper canopy` *and* `upper_canopy` in the same corpus for the same thing, neither matching ESS-DIVE's `top of canopy`; `PLC whole segment` vs `PLC wholesegment`; `early morning` vs `morning`); and a **name collision** — AusFizz's `plant_age` holds actual ages (`2 years`, `4-7 years`) in 28 of 30 datasets, while ESS-DIVE's `plantAge` is a life-stage category, and `life_stage` already exists as a dataset field. Recorded in `vocabularies.yml` next to the vocabulary each concerns.
 - **AusFizz's `remake.yml` still declared `packages: traits.build`.** It had never been regenerated after the fork. Regenerated.
 
-### Stage 2 — emit `curves` and `curve_points` from the *existing* metadata — **next**
+### Stage 2 — emit `curves` and `curve_points` from the *existing* metadata — **done**
 
 Before touching a single `metadata.yml`. This proves the model against all 30 datasets while the inputs are still known-good, and produces the reference output Stage 3's migration must reproduce.
 
@@ -116,6 +116,31 @@ curve_points  dataset_id, curve_id, point_id, <one column per variable>
 - `data_type` ← lifted from the `data_type` method_context (present in 30 of 31 datasets).
 - `driver` ← per `data_type`: `ACi → Ci`, `AQ → Qin`, `ACi-T → (leaf_temperature_setpoint, Ci)`, `PV curve → PSIleaf`, `stem hydraulic vulnerability → PSIstem`; `Rd`/`Amax`/`survey` → none.
 - **A single-point observation is a curve with `n_points = 1` and no driver.** This is the common case (22,673 of 25,547) and must not be a special path.
+
+#### Result, measured on the full 30-dataset build
+
+| | |
+|---|---|
+| `traits` rows | 584,338 |
+| `curve_points` rows | **50,506 — 11.6× smaller** |
+| curves | 25,699 |
+| traits values not recoverable from `curve_points` | **0** |
+| curves carrying a `data_type` | 25,554 of 25,699 — closes board #1 |
+| curves carrying a `driver` | 12,095 (`ACi-T` correctly nested: `Ci` over `leaf_temperature_setpoint`) |
+| curves whose points cannot be paired | **0** |
+| `curve_points` conflicts | **0** |
+
+#### Three things the implementation had to get right
+
+- **`method_id` is not part of the curve.** It is a property of a (curve, variable) pair: one curve can hold a variable measured under a different method from the rest. Putting it in the key made the key non-unique, and would have split 75 curves across two datasets — in `Ghannoum_2010` fragmenting a complete eight-variable curve into that curve plus a one-variable remnant, because `Tleaf` alone was measured twice. In `Bloomfield_2014_a` different variables use different methods, so splitting breaks the pairing outright. The key is `(dataset_id, observation_id, method_context_id)`; `method_id` is not on the curve row at all.
+- **`link_vals` in the contexts table is a comma-separated *list* of ids**, not one id. Joining on the raw string silently matches nothing whenever a context value covers more than one method context — which is how `data_type` is usually recorded. Pinned by a test.
+- **The `curve_points` conflict is a check, not a build warning.** Where a variable has two values at one point, only one fits the wide view (lowest `method_id` wins) and `check_curve_points_conflicts()` reports it. It is not warned at build time: for trait-style data several methods per trait is the normal case, and it fired 45 times on a single test fixture. A warning nobody can act on is one everybody learns to ignore.
+
+#### Found in Stage 2, deliberately not fixed
+
+- **`Drake_2017` declares no `data_type` context at all** — the only one of 30 — so its 145 curves carry none. It also uses `instrument_ID` where every other dataset uses `instrument`. Stage 3.
+- **`Drake_2015` has three raw CSVs and no `metadata.yml`.** It is board issue #3 waiting to happen, and the reason `remake.yml` carries 31 targets for 32 data folders.
+- **`n_points` is character**, like every other column of every other table in this data model, so a written CSV reads back as what the database held.
 
 ### Stage 3 — metadata schema v2, and migrate all 30
 

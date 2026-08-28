@@ -58,8 +58,11 @@ dataset_configure <- function(
 #' @param unit_conversion_functions `unit_conversion.csv` file read in from the config folder
 #' @param filter_missing_values Default filters missing values from the excluded data table;
 #' change to false to see the rows with missing values
+#' @param data_types Data type definitions, used to say what each curve is
+#' measured across. Defaults to `config/data_types.yml` if present; without it
+#' curves are still identified but carry no `driver`.
 #'
-#' @return List, AusTraits database object
+#' @return List, database object
 #' @export
 #' @importFrom dplyr select mutate filter arrange distinct full_join everything any_of
 #' @importFrom tidyr spread
@@ -79,7 +82,8 @@ dataset_process <- function(filename_data_raw,
                             schema,
                             resource_metadata,
                             unit_conversion_functions,
-                            filter_missing_values = TRUE) {
+                            filter_missing_values = TRUE,
+                            data_types = get_data_types()) {
 
   dataset_id <- config_for_dataset$dataset_id
   metadata <- config_for_dataset$metadata
@@ -348,10 +352,25 @@ dataset_process <- function(filename_data_raw,
     )
 
 
+  # Identify the curves. This reads the processed traits table rather than
+  # replacing it: `traits` is still what every later step joins against, and
+  # Stage 3's migration is gated on `curves` and `curve_points` not moving.
+  traits_ok <- traits %>%
+    dplyr::filter(is.na(.data$error)) %>%
+    dplyr::select(-dplyr::all_of(c("error", "unit_in")))
+
+  curve_tables <- process_create_curves(
+    traits_ok,
+    context_ids$contexts,
+    data_types
+  )
+
   # Combine for final output
   ret <-
     list(
-      traits = traits %>% dplyr::filter(is.na(.data$error)) %>% dplyr::select(-dplyr::all_of(c("error", "unit_in"))),
+      traits = traits_ok,
+      curves = curve_tables$curves,
+      curve_points = curve_tables$curve_points,
       locations = locations,
       contexts = context_ids$contexts %>% dplyr::select(-dplyr::any_of(c("var_in"))),
       methods = methods,

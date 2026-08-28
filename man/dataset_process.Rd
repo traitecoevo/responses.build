@@ -10,7 +10,8 @@ dataset_process(
   schema,
   resource_metadata,
   unit_conversion_functions,
-  filter_missing_values = TRUE
+  filter_missing_values = TRUE,
+  data_types = get_data_types()
 )
 }
 \arguments{
@@ -26,9 +27,13 @@ dataset_process(
 
 \item{filter_missing_values}{Default filters missing values from the excluded data table;
 change to false to see the rows with missing values}
+
+\item{data_types}{Data type definitions, used to say what each curve is
+measured across. Defaults to \code{config/data_types.yml} if present; without it
+curves are still identified but carry no \code{driver}.}
 }
 \value{
-List, AusTraits database object
+List, database object
 }
 \description{
 \code{dataset_process} is used to load individual studies using the config file generated

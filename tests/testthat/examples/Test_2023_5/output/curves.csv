@@ -1,0 +1,34 @@
+dataset_id,curve_id,data_type,driver,driver_outer,taxon_name,observation_id,individual_id,population_id,collection_date,location_id,treatment_context_id,entity_context_id,temporal_context_id,method_context_id,instrument,n_points,point_order
+Test_2023_5,01,,,,Acacia aneura var. major,01,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,02,,,,Acacia auriculiformis,02,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,03,,,,Acacia holosericea,03,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,04,,,,Acacia holosericea,04,02,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,05,,,,Acacia kempeana,05,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,06,,,,Acacia lysiphloia,06,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,07,,,,Acacia neurocarpa,07,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,08,,,,Acacia shirleyi,08,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,09,,,,Archidendron kanisii,09,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,10,,,,Archidendron whitei,10,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,11,,,,Castanospermum australe,11,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,12,,,,Corymbia dichromophloia,12,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,13,,,,Corymbia foelscheana,13,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,14,,,,Corymbia foelscheana,14,02,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,15,,,,Corymbia foelscheana,15,03,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,16,,,,Corymbia terminalis,16,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,17,,,,Elaeocarpus angustifolius,17,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,18,,,,Eucalyptus chlorophylla,18,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,19,,,,Eucalyptus grandis,19,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,20,,,,Eucalyptus miniata,20,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,21,,,,Eucalyptus patellaris,21,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,22,,,,Eucalyptus tetrodonta,22,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,23,,,,Gardenia actinocarpa,23,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,24,,,,Gardenia ovularis,24,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,25,,,,Grevillea dimidiata,25,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,26,,,,Grevillea pteridifolia,26,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,27,,,,Grevillea robusta,27,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,28,,,,Grevillea wickhamii ssp aprica,28,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,29,,,,Hakea arborescens,29,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,30,,,,Hakea suberea,30,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,31,,,,Persoonia falcata,31,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,32,,,,Xanthostemon chrysanthus,32,01,pop_unk,unknown/2009,,,,,,,1,file order
+Test_2023_5,33,,,,Xanthostemon formosus,33,01,pop_unk,unknown/2009,,,,,,,1,file order

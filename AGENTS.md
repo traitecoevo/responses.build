@@ -18,17 +18,33 @@ curves         the curve as an addressable object
 traits         derived parameters, one per entity  Amax, Vcmax25, Jmax25, P50, TLP
 ```
 
-The upstream data model called the first row "traits", which is why 590,031 rows in AusFizz encode
-50,089 measurements. `traits` is reserved here for the third row — the parameters fitted from curves,
-which are what eventually reaches AusTraits.
+The upstream data model called the first row "traits", which is why the AusFizz `traits` table needs
+584,338 rows to hold what `curve_points` holds in 50,506. `traits` is reserved here for the third row
+— the parameters fitted from curves, which are what eventually reaches AusTraits.
 
 **Naming rule, everywhere:** identifiers are `snake_case`, carry no units, spaces or brackets, and
 units live in a `unit` field beside the value.
 
+### The curve tables
+
+`curves` and `curve_points` are the point of this package. A curve is identified by
+`(dataset_id, observation_id, method_context_id)`; its points are ordered by `repeat_measurements_id`.
+
+Two things that look like tidying up and are not:
+
+- **`method_id` is deliberately absent from `curves`.** It belongs to a (curve, variable) pair, not to
+  the curve. Adding it to the key splits curves that should stay whole — measured: 75 of them, and in
+  `Ghannoum_2010` it fragments a complete eight-variable curve because `Tleaf` alone was measured twice.
+- **`link_vals` in the contexts table is a comma-separated list of ids**, not one id. Any join against
+  it must split first, or it silently matches nothing.
+
+`n_points` is character, like every other column of every other table here, so `write_plaintext()` and
+`read_csv_char()` round-trip.
+
 ### The fork is a real fork
 
-The response-curve data model is **not implemented yet** — `PLAN.md` Stage 2 onwards. But this
-package no longer tracks upstream, and the `austraits` linkage is severed:
+The curve model is in the built object as of Stage 2; `PLAN.md` Stage 3 onwards rewrites the AusFizz
+metadata against it. This package no longer tracks upstream, and the `austraits` linkage is severed:
 
 - Built databases carry the S3 class `responses.build` and record
   `https://github.com/traitecoevo/responses.build` as the `isCompiledBy` related identifier. Both

@@ -114,6 +114,49 @@ austraits:
         method_id: &method_id A unique integer identifier to distinguish between multiple sets of methods used to measure a single trait within the same dataset. The identifier links to specific information in the methods table.
         method_context_id: &method_context_id A unique integer identifier indicating a trait is measured multiple times on the same entity, with different methods used for each entry. This field is only used if a single trait is measured using multiple methods within the same dataset. The identifier links to specific information in the context table.
         original_name: &original_name Name given to taxon in the original data supplied by the authors.
+    curves:
+      description: >
+        A table with one row per response curve. A curve is a set of measurements taken across a driver
+        gradient whose points belong together, and it is what this data model exists to represent. Curves
+        are identified by `dataset_id`, `observation_id` and `method_context_id` - an entity at one point
+        in time, measured under one set of method settings. A single-point observation is a curve with
+        `n_points` of 1 and no driver; that is the common case, not a special case. Cross referencing with
+        `curve_points` is possible using `dataset_id` and `curve_id`.
+      type: table
+      elements:
+        dataset_id: *dataset_id
+        curve_id: &curve_id A unique integer identifier for a response curve within a dataset. Points of the same curve share it.
+        data_type: &data_type What kind of measurement the curve is - `ACi`, `AQ`, `PV curve`, `survey` and so on. Allowable values and their meanings are specified in the compilation's `config/data_types.yml`.
+        driver: &driver The variable the curve is measured across - `Ci` for an A-Ci curve, `Qin` for an A-Q curve, `PSIstem` for a stem vulnerability curve. `NA` where the data type is a single-point observation, or where the compilation does not define one.
+        driver_outer: &driver_outer For a nested curve, the variable selecting which curve. An `ACi-T` dataset is a set of A-Ci curves, one per cuvette temperature - `Ci` is the driver and `leaf_temperature_setpoint` the outer driver.
+        taxon_name: *taxon_name
+        observation_id: *observation_id
+        individual_id: *individual_id
+        population_id: *population_id
+        collection_date: *collection_date
+        location_id: *location_id
+        treatment_context_id: *treatment_context_id
+        entity_context_id: *entity_context_id
+        temporal_context_id: *temporal_context_id
+        method_context_id: *method_context_id
+        instrument: &instrument The instrument the measurements were made with.
+        n_points: &n_points The number of points the curve holds.
+        point_order: >
+          Whether the order of points within the curve was recorded (`recorded`) or taken from the order
+          of rows in the source file (`file order`). Pairing one variable with another across a curve -
+          knowing which `A` goes with which `Ci` - depends on a recorded order. Where it is `file order`,
+          the values are all present but their correspondence is an assumption. See `check_curve_pairing()`.
+    curve_points:
+      description: >
+        A table with one row per point of a curve and one column per variable measured - the shape the
+        measurements were taken in, and the shape they are analysed in. This holds the same values as the
+        `traits` table without the row-per-variable inflation. Cross referencing with `curves` is possible
+        using `dataset_id` and `curve_id`.
+      type: table
+      elements:
+        dataset_id: *dataset_id
+        curve_id: *curve_id
+        point_id: &point_id A unique integer identifier for one point within a curve. The same `point_id` in two columns refers to the same measurement, so a curve's variables can be paired.
     locations:
       description: A table containing observations of location/site characteristics associated with information in `traits`. Cross referencing between the two dataframes is possible using combinations of the variables `dataset_id`, `location_name`.
       type: table

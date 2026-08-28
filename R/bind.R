@@ -45,6 +45,16 @@ bind_databases <- function(..., databases = list(...), rights = NULL,
     out %>% dplyr::bind_rows() %>% dplyr::distinct()
   }
 
+  # `arrange()` on a column that is not there is an error, and a table can
+  # legitimately be absent or empty -- a database built before the curve tables
+  # existed, or one whose every row was excluded.
+  arrange_if <- function(name, ...) {
+    out <- combine(name)
+    cols <- c(...)
+    if (is.null(out) || nrow(out) == 0 || !all(cols %in% names(out))) return(out)
+    dplyr::arrange(out, dplyr::across(dplyr::all_of(cols)))
+  }
+
   # Sources and definitions are named lists, not tables
   sources <- databases %>% lapply("[[", "sources")
   keys <- sources %>% lapply(names) %>% unlist() %>% unique() %>% sort()
@@ -76,19 +86,20 @@ bind_databases <- function(..., databases = list(...), rights = NULL,
 
   ret <-
     list(
-      traits = combine("traits") %>%
-        dplyr::arrange(.data$dataset_id, .data$observation_id, .data$trait_name),
-      locations = combine("locations") %>%
-        dplyr::arrange(.data$dataset_id, .data$location_id),
-      contexts = combine("contexts") %>%
-        dplyr::arrange(.data$dataset_id, .data$category),
-      methods = combine("methods") %>%
-        dplyr::arrange(.data$dataset_id, .data$trait_name),
-      excluded_data = combine("excluded_data") %>%
-        dplyr::arrange(.data$dataset_id, .data$observation_id, .data$trait_name),
+      traits = arrange_if("traits", "dataset_id", "observation_id", "trait_name"),
+      curves = arrange_if("curves", "dataset_id", "curve_id"),
+      # `curve_points` has one column per variable, so databases measuring
+      # different variables have different columns. `bind_rows()` unions them
+      # and fills the gaps with NA, which is the right answer: a curve that
+      # never measured `PSIstem` has no value for it.
+      curve_points = arrange_if("curve_points", "dataset_id", "curve_id", "point_id"),
+      locations = arrange_if("locations", "dataset_id", "location_id"),
+      contexts = arrange_if("contexts", "dataset_id", "category"),
+      methods = arrange_if("methods", "dataset_id", "trait_name"),
+      excluded_data = arrange_if("excluded_data", "dataset_id", "observation_id", "trait_name"),
       taxonomic_updates = taxonomic_updates,
-      taxa = combine("taxa") %>% dplyr::distinct() %>% dplyr::arrange(.data$taxon_name),
-      identifiers = combine("identifiers") %>% dplyr::distinct(),
+      taxa = arrange_if("taxa", "taxon_name"),
+      identifiers = combine("identifiers"),
       contributors = contributors,
       sources = sources,
       definitions = definitions,

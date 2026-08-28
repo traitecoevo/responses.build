@@ -440,6 +440,23 @@ test_expect_structure <- function(data, info, schema, definitions, single_datase
   # Test structure of tables
   for (v in vars_tables) {
     comparison <- schema$austraits$elements[[v]]$elements %>% names()
+
+    # `curve_points` carries one column per variable measured, so its columns
+    # are the compilation's vocabulary, not a fixed list. The schema names only
+    # the three keys; the rest are checked against `definitions` below.
+    if (identical(v, "curve_points")) {
+      test_expect_contains(
+        names(data[[v]]), comparison,
+        info = paste0(info, "\tnames of `curve_points` table")
+      )
+      test_expect_contains(
+        c(names(definitions$elements), comparison),
+        names(data[[v]]),
+        info = paste0(info, "\t`curve_points` columns are defined variables")
+      )
+      next
+    }
+
     test_expect_dataframe_named(data[[v]], comparison, info = info, label = paste0(v, " table column names"))
   }
 
