@@ -192,7 +192,7 @@ metadata_user_select_names <- function(title, vars) {
 
   txt <- sprintf(
     "%s (by number separated by space; e.g. '1 2 4'):\n%s\n",
-    title, paste(sprintf("%d: %s", seq_len(length(vars)), vars), collapse = "\n")
+    title, paste(sprintf("%d: %s", seq_along(vars), vars), collapse = "\n")
   )
 
   success <- FALSE
@@ -201,7 +201,7 @@ metadata_user_select_names <- function(title, vars) {
     i <- readline("\nSelection: ")
     i <- strsplit(i, " ")[[1]] %>% as.integer()
 
-    if (all(i %in% seq_len(length(vars)))) {
+    if (all(i %in% seq_along(vars))) {
       success <- TRUE
     } else {
       message("Invalid selection, please try again\n")

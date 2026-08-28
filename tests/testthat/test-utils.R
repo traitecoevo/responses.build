@@ -28,10 +28,10 @@ test_that("`convert_list_to_df2` is working", {
   expect_equal(convert_list_to_df2(NULL) |> suppressWarnings(), NA)
   expect_equal(convert_list_to_df2(NA) |> suppressWarnings(), NA)
 
-  my_list <-suppressWarnings(convert_df_to_list(dplyr::starwars))
+  my_list <- suppressWarnings(convert_df_to_list(dplyr::starwars))
   expect_match(class(convert_list_to_df2(my_list))[1] |> suppressWarnings(), "tbl_df")
-  expect_equal(convert_list_to_df2(my_list, as_character = TRUE)[[1,2]] |> suppressWarnings(), "172")
-  expect_equal(convert_list_to_df2(my_list, as_character = FALSE)[[1,2]] |> suppressWarnings(), 172)
+  expect_equal(convert_list_to_df2(my_list, as_character = TRUE)[[1, 2]] |> suppressWarnings(), "172")
+  expect_equal(convert_list_to_df2(my_list, as_character = FALSE)[[1, 2]] |> suppressWarnings(), 172)
 
   my_list <- list(NA)
   expect_equal(convert_list_to_df2(my_list) |> suppressWarnings(), NA)

@@ -593,7 +593,7 @@ if (nrow(filter(data_study$excluded_data, error == "Value out of allowable range
   }
 
   # Check if methods data are complete
-  methods_missing <- transforms[1,] %in% c("unknown")
+  methods_missing <- transforms[1, ] %in% c("unknown")
   names_missing <-  names(transforms)[methods_missing]
 
   for (v in c("value_type", "replicates", "methods")) {
@@ -699,7 +699,7 @@ for (trait in traits_categorical) {
   )
 
   # Check if methods data are complete
-  methods_missing <- transforms[1,] %in% c("unknown")
+  methods_missing <- transforms[1, ] %in% c("unknown")
   names_missing <-  names(transforms)[methods_missing]
 
   for (v in c("value_type", "replicates", "methods")) {

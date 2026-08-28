@@ -159,5 +159,5 @@ notetaker_print_all <- function(notes, ..., numbered = TRUE) {
 #'
 #' @return a single row from a tibble
 notetaker_get_note <- function(notes, i = nrow(notes)) {
-  notes[i,]
+  notes[i, ]
 }

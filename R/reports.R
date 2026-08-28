@@ -25,7 +25,7 @@ dataset_report <- function(dataset_id, austraits, overwrite = FALSE,
 
   built <- vapply(
     dataset_id,
-    function(d)
+    function(d) {
       dataset_report_worker(
         dataset_id = d,
         austraits = austraits,
@@ -34,7 +34,8 @@ dataset_report <- function(dataset_id, austraits, overwrite = FALSE,
         input_file = input_file,
         quiet = quiet,
         keep = keep
-      ),
+      )
+    },
     logical(1)
   )
 

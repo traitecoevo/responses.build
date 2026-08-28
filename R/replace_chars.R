@@ -357,4 +357,3 @@ util_report_disallowed_chars <- function(report, dry_run) {
 
   invisible(report)
 }
-
