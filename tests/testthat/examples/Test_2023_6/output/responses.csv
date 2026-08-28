@@ -1,4 +1,4 @@
-dataset_id,curve_id,data_type,driver,driver_outer,taxon_name,observation_id,individual_id,population_id,collection_date,location_id,treatment_context_id,entity_context_id,temporal_context_id,method_context_id,instrument,n_points,point_order
+dataset_id,response_id,data_type,driver,driver_outer,taxon_name,observation_id,individual_id,population_id,collection_date,location_id,treatment_context_id,entity_context_id,temporal_context_id,method_context_id,instrument,n_points,point_order
 Test_2023_6,01,,,,Acacia aneura var. major,01,01,01,unknown/2009,01,,,,,,1,file order
 Test_2023_6,02,,,,Acacia auriculiformis,02,01,01,unknown/2009,01,,,,,,1,file order
 Test_2023_6,03,,,,Acacia holosericea,03,01,01,unknown/2009,01,,,,,,1,file order

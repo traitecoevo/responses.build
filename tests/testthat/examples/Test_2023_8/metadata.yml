@@ -61,8 +61,8 @@ dataset:
 identifiers: .na
 locations:
   Howard Springs:
-    latitude (deg): -12.485
-    longitude (deg): 131.146
+    latitude_deg: -12.485
+    longitude_deg: 131.146
     elevation (m): 37.0
     precipitation, MAP (mm): 1714.0
     temperature, MAT (C): 27.8

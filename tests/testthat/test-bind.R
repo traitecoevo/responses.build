@@ -6,15 +6,16 @@
 
 make_db <- function(rights, dataset_id = "Test_2022") {
   db <- list(
-    traits = tibble::tibble(
+    measurements = tibble::tibble(
       dataset_id = dataset_id, taxon_name = "Acacia aneura",
-      observation_id = "001", trait_name = "A", value = "1"
+      observation_id = "001", response_id = "01", point_id = "01",
+      variable = "A", value = "1"
     ),
     locations = tibble::tibble(dataset_id = dataset_id, location_id = "01"),
     contexts = tibble::tibble(dataset_id = dataset_id, category = "method_context"),
     methods = tibble::tibble(dataset_id = dataset_id, trait_name = "A"),
     excluded_data = tibble::tibble(
-      dataset_id = dataset_id, observation_id = "001", trait_name = "A"
+      dataset_id = dataset_id, observation_id = "001", variable = "A"
     ),
     taxonomic_updates = tibble::tibble(
       original_name = "Acacia aneura", aligned_name = "Acacia aneura",
@@ -49,7 +50,7 @@ test_that("merging databases with the same licence keeps it", {
 
   expect_s3_class(merged, "responses.build")
   expect_equal(merged$metadata$license$rights, "CC-BY-4.0")
-  expect_equal(nrow(merged$traits), 2)
+  expect_equal(nrow(merged$measurements), 2)
 })
 
 
@@ -88,7 +89,7 @@ test_that("a stated licence resolves the merge, and carries its whole block", {
     merged$metadata$license$rights_URI,
     "https://example.org/All rights reserved"
   )
-  expect_equal(nrow(merged$traits), 2)
+  expect_equal(nrow(merged$measurements), 2)
 })
 
 

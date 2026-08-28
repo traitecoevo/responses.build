@@ -86,13 +86,9 @@ bind_databases <- function(..., databases = list(...), rights = NULL,
 
   ret <-
     list(
-      traits = arrange_if("traits", "dataset_id", "observation_id", "trait_name"),
-      curves = arrange_if("curves", "dataset_id", "curve_id"),
-      # `curve_points` has one column per variable, so databases measuring
-      # different variables have different columns. `bind_rows()` unions them
-      # and fills the gaps with NA, which is the right answer: a curve that
-      # never measured `PSIstem` has no value for it.
-      curve_points = arrange_if("curve_points", "dataset_id", "curve_id", "point_id"),
+      measurements = arrange_if("measurements", "dataset_id", "response_id",
+                                "point_id", "variable"),
+      responses = arrange_if("responses", "dataset_id", "response_id"),
       locations = arrange_if("locations", "dataset_id", "location_id"),
       treatments = arrange_if("treatments", "dataset_id", "treatment_context_id", "factor"),
       # A total order: `dataset_id` and `category` alone leave rows within a
@@ -100,8 +96,8 @@ bind_databases <- function(..., databases = list(...), rights = NULL,
       # context was added or removed.
       contexts = arrange_if("contexts", "dataset_id", "category",
                             "context_property", "value"),
-      methods = arrange_if("methods", "dataset_id", "trait_name"),
-      excluded_data = arrange_if("excluded_data", "dataset_id", "observation_id", "trait_name"),
+      methods = arrange_if("methods", "dataset_id", "variable"),
+      excluded_data = arrange_if("excluded_data", "dataset_id", "observation_id", "variable"),
       taxonomic_updates = taxonomic_updates,
       taxa = arrange_if("taxa", "taxon_name"),
       identifiers = combine("identifiers"),

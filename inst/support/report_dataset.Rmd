@@ -99,12 +99,10 @@ library(kableExtra)
 
 my_kable_styling <- util_kable_styling_html
 
-# `definitions` is the vocabulary of per-point variables. Derived traits have
-# their own vocabulary, and are a different kind of thing -- see "Derived
-# traits" at the end of this report.
+# `definitions` is the vocabulary of variables -- the readings taken at each
+# point of a curve. There is no second vocabulary of derived parameters:
+# fitting curves is out of scope for this compilation.
 definitions <- database$definitions
-definitions_traits <- tryCatch(get_definitions("config/traits.yml")$elements,
-                               error = function(e) list())
 
 data_study <- extract_dataset(database, dataset_id)
 metadata <- read_metadata(file.path("data", dataset_id, "metadata.yml"))
@@ -312,7 +310,7 @@ new_question("(section `source`) Are the citation details for this study correct
 
 The dataset-level metadata we have mapped in is as follows:
 
-- the fields `taxon_name`, `trait_name`, `value` (for long-format datasets), & `location_name` indicate the column from `data.csv` we have mapped in for this information
+- the fields `taxon_name`, `trait_name`, `value` (for long-format datasets), & `location_name` indicate the column from `data.csv` we have mapped in for this information (the built table calls `trait_name` `variable`)
 - `description` & `sampling_strategy` are based on information in the publication or notes you've provided
 - `basis_of_record`, `life_stage`, and `collection_date` can be a fixed value for the dataset or link to a column that varies by observation
 - `custom_R_code` is just that; code specifically written to manipulate `data.csv` as it is read into the traits.build workflow
@@ -346,7 +344,7 @@ for (v in missing) {
 ```{r, results='asis', echo=FALSE}
 # When every record is species-level (or a higher taxonomic rank), 
 # jump straight to a single confirmatory question instead.
-is_species_only_dataset <- nrow(data_study$traits) > 0 && isTRUE(all(data_study$traits$entity_type == "species"))
+is_species_only_dataset <- nrow(data_study$measurements) > 0 && isTRUE(all(data_study$measurements$entity_type == "species"))
 
 if (is_species_only_dataset) {
   writeLines("This dataset only includes species-level trait observations. Such observations are not linked to a specific location or location properties.")
@@ -365,7 +363,7 @@ create_if_missing <- function(df, var, type = rep(NA_character_, nrow(df))) {
   df
 }
 
-location_main <- c("location_name", "longitude (deg)", "latitude (deg)", "description")
+location_main <- c("location_name", "longitude_deg", "latitude_deg", "description")
 
 if (!is_species_only_dataset) {
   writeLines("Data were collected at the following sites and locations. As a minimum, we are aiming to collect the variables `latitude`, `longitude`, and `description`.")
@@ -380,7 +378,7 @@ if (!is_species_only_dataset) {
   locations <-
     full_join(by = "location_id",
               # count of records by location
-              data_study$traits %>%
+              data_study$measurements %>%
                 filter(entity_type %in% location_entity_types) %>%
                 # `ifelse()` degrades a character column to logical when the
                 # data is empty (e.g. a dataset with no location-tied entity
@@ -396,15 +394,15 @@ if (!is_species_only_dataset) {
                 spread(location_property, value) %>%
                 create_if_missing("location_id") %>%
                 create_if_missing("location_name") %>%
-                create_if_missing("latitude (deg)") %>%
-                create_if_missing("longitude (deg)") %>%
+                create_if_missing("latitude_deg") %>%
+                create_if_missing("longitude_deg") %>%
                 create_if_missing("description")  %>%
                 mutate(
-                  `latitude (deg)` = as.numeric(`latitude (deg)`),
-                  `longitude (deg)` = as.numeric(`longitude (deg)`)
+                  latitude_deg = as.numeric(latitude_deg),
+                  longitude_deg = as.numeric(longitude_deg)
                   )
     ) %>%
-   select(location_id, location_name, records, `latitude (deg)`, `longitude (deg)`, description)
+   select(location_id, location_name, records, latitude_deg, longitude_deg, description)
 
   if (nrow(locations) > 0) {
     locations %>%
@@ -422,7 +420,7 @@ if (!is_species_only_dataset) {
   # something safe to filter/check, without rendering anything itself
   locations <- tibble::tibble(
     location_id = character(), location_name = character(), records = integer(),
-    `latitude (deg)` = numeric(), `longitude (deg)` = numeric(), description = character()
+    latitude_deg = numeric(), longitude_deg = numeric(), description = character()
   )
 }
 
@@ -431,13 +429,13 @@ if (!is_species_only_dataset) {
 ```{r maps, eval= TRUE, echo=FALSE, warning=FALSE, message=FALSE, fig.keep="all"}
 
 # Make a map of study locations using leaflet
-locations <- locations %>% filter(!is.na(`latitude (deg)`) & !is.na(`longitude (deg)`))
+locations <- locations %>% filter(!is.na(latitude_deg) & !is.na(longitude_deg))
 if (nrow(locations) > 0) {
   leaflet::leaflet() %>%
   leaflet::addTiles() %>%
   leaflet::addScaleBar() %>%
   leaflet::addMiniMap(zoomLevelFixed = 2) %>%
-  leaflet::addMarkers(lng = locations$`longitude (deg)`, lat = locations$`latitude (deg)`,
+  leaflet::addMarkers(lng = locations$longitude_deg, lat = locations$latitude_deg,
              label = locations$location_name)
 }
 ```
@@ -658,25 +656,25 @@ if (nrow(data_study$identifiers) > 0) {
 
 ## Taxa sampled
 
-We have records on `r data_study$traits$taxon_name %>% unique() %>% length()` taxa from your study. The full list of names for taxa recorded in your study is listed at the end of the report.
+We have records on `r data_study$measurements$taxon_name %>% unique() %>% length()` taxa from your study. The full list of names for taxa recorded in your study is listed at the end of the report.
 
 # Measurements
 
 ## Overview
 
 ```{r curve_overview, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
-curves <- data_study$curves
-points <- data_study$curve_points
-value_cols <- setdiff(names(points), c("dataset_id", "curve_id", "point_id"))
+responses <- data_study$responses
+points <- response_pivot_wider(data_study, with_curves = FALSE)
+value_cols <- setdiff(names(points), c("dataset_id", "response_id", "point_id"))
 
-n_multi <- sum(as.integer(curves$n_points) > 1)
+n_multi <- sum(as.integer(responses$n_points) > 1)
 
 writeLines(sprintf(
   paste0("This dataset holds **%s measurement%s** on **%s taxa**, made up of %s ",
          "individual readings across %s variables.\n"),
-  format(nrow(curves), big.mark = ","), ifelse(nrow(curves) == 1, "", "s"),
-  length(unique(curves$taxon_name)),
-  format(nrow(data_study$traits), big.mark = ","),
+  format(nrow(responses), big.mark = ","), ifelse(nrow(responses) == 1, "", "s"),
+  length(unique(responses$taxon_name)),
+  format(nrow(data_study$measurements), big.mark = ","),
   length(value_cols)
 ))
 
@@ -685,9 +683,9 @@ writeLines(sprintf(
          "driver gradient, whose points belong together -- and %s are single-point ",
          "observations.\n"),
   format(n_multi, big.mark = ","),
-  format(nrow(curves) - n_multi, big.mark = ",")))
+  format(nrow(responses) - n_multi, big.mark = ",")))
 
-curves %>%
+responses %>%
   group_by(data_type) %>%
   summarise(
     curves = n(),
@@ -731,7 +729,7 @@ writeLines(ifelse(nrow(real_exclusions) == 0,
 
 if (nrow(real_exclusions) > 0) {
   real_exclusions %>%
-    group_by(trait_name, error) %>%
+    group_by(variable, error) %>%
     summarise(`readings excluded` = n(), .groups = "drop") %>%
     arrange(desc(`readings excluded`)) %>%
     my_kable_styling() %>%
@@ -748,7 +746,7 @@ if (nrow(real_exclusions) > 0) {
       "needs changing.\n"))
 
     out_of_range %>%
-      group_by(trait_name) %>%
+      group_by(variable) %>%
       summarise(
         excluded = n(),
         `smallest excluded` = min(suppressWarnings(as.numeric(value)), na.rm = TRUE),
@@ -756,8 +754,8 @@ if (nrow(real_exclusions) > 0) {
         .groups = "drop"
       ) %>%
       mutate(
-        `allowed min` = purrr::map_dbl(trait_name, ~ definitions[[.x]]$allowed_values_min %||% NA_real_),
-        `allowed max` = purrr::map_dbl(trait_name, ~ definitions[[.x]]$allowed_values_max %||% NA_real_)
+        `allowed min` = purrr::map_dbl(variable, ~ definitions[[.x]]$allowed_values_min %||% NA_real_),
+        `allowed max` = purrr::map_dbl(variable, ~ definitions[[.x]]$allowed_values_max %||% NA_real_)
       ) %>%
       my_kable_styling() %>%
       writeLines()
@@ -771,7 +769,7 @@ if (nrow(real_exclusions) > 0) {
 
 ```{r curve_plots, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
 # A curve is only worth drawing if it has a driver and more than one point.
-drawable <- curves %>%
+drawable <- responses %>%
   filter(!is.na(driver), as.integer(n_points) > 1)
 
 if (nrow(drawable) == 0) {
@@ -788,7 +786,7 @@ if (nrow(drawable) == 0) {
 }
 
 # What to plot against the driver, per data type. Assimilation for the gas
-# exchange curves, loss of conductivity for the vulnerability curves.
+# exchange responses, loss of conductivity for the vulnerability curves.
 response_for <- function(dt, available) {
   preferred <- switch(
     dt,
@@ -815,17 +813,17 @@ for (dt in sort(unique(drawable$data_type))) {
   if (is.null(response) || !driver %in% value_cols) next
 
   dat <- points %>%
-    filter(curve_id %in% in_type$curve_id) %>%
-    select(all_of(c("curve_id", "point_id", driver, response))) %>%
+    filter(response_id %in% in_type$response_id) %>%
+    select(all_of(c("response_id", "point_id", driver, response))) %>%
     rename(x = all_of(driver), y = all_of(response)) %>%
     mutate(across(all_of(c("x", "y")), ~ suppressWarnings(as.numeric(.x)))) %>%
     filter(!is.na(x), !is.na(y)) %>%
-    left_join(in_type %>% select(all_of(c("curve_id", "taxon_name"))), by = "curve_id")
+    left_join(in_type %>% select(all_of(c("response_id", "taxon_name"))), by = "response_id")
 
   if (nrow(dat) == 0) next
 
-  shown <- utils::head(sort(unique(dat$curve_id)), MAX_PANELS)
-  n_total <- length(unique(dat$curve_id))
+  shown <- utils::head(sort(unique(dat$response_id)), MAX_PANELS)
+  n_total <- length(unique(dat$response_id))
 
   writeLines(sprintf("\n### %s\n", dt))
   writeLines(sprintf(
@@ -835,12 +833,12 @@ for (dt in sort(unique(drawable$data_type))) {
     driver, response))
 
   p <- dat %>%
-    filter(curve_id %in% shown) %>%
+    filter(response_id %in% shown) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y)) +
-    ggplot2::geom_path(ggplot2::aes(group = curve_id),
+    ggplot2::geom_path(ggplot2::aes(group = response_id),
                        colour = "grey60", linewidth = 0.3) +
     ggplot2::geom_point(ggplot2::aes(colour = taxon_name), size = 1) +
-    ggplot2::facet_wrap(~ curve_id, scales = "free") +
+    ggplot2::facet_wrap(~ response_id, scales = "free") +
     ggplot2::labs(x = driver, y = response, colour = NULL) +
     ggplot2::theme_minimal(base_size = 9) +
     ggplot2::theme(legend.position = "bottom",
@@ -851,20 +849,20 @@ for (dt in sort(unique(drawable$data_type))) {
 }
 
 if (nrow(drawable) > 0) {
-  new_question("(section `measurements`) Do any of the curves above look wrong -- points in the wrong order, a curve that should be two, or a shape you would not expect?")
+  new_question("(section `measurements`) Do any of the responses above look wrong -- points in the wrong order, a curve that should be two, or a shape you would not expect?")
 }
 ```
 
 ## Curve quality
 
 ```{r curve_diagnostics, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
-multi <- curves %>% filter(as.integer(n_points) > 1)
+multi <- responses %>% filter(as.integer(n_points) > 1)
 
 if (nrow(multi) == 0) {
-  writeLines("\nNo multi-point curves in this dataset.\n")
+  writeLines("\nNo multi-point responses in this dataset.\n")
 } else {
 
-  writeLines("\nHow long the curves are:\n")
+  writeLines("\nHow long the responses are:\n")
 
   multi %>%
     group_by(data_type) %>%
@@ -889,11 +887,11 @@ if (nrow(multi) == 0) {
       nrow(short), ifelse(nrow(short) == 1, " has" , "s have")))
 
     short %>%
-      count(data_type, n_points, name = "curves") %>%
+      count(data_type, n_points, name = "responses") %>%
       my_kable_styling() %>%
       writeLines()
 
-    new_question("(section `measurements`) Some curves have very few points. Are the remaining points available?")
+    new_question("(section `measurements`) Some responses have very few points. Are the remaining points available?")
   }
 
   # Point order is what lets one variable be paired with another across a
@@ -921,7 +919,7 @@ if (nrow(multi) == 0) {
       sum(!conflicts$used), ifelse(sum(!conflicts$used) == 1, " has", "s have")))
 
     conflicts %>%
-      count(trait_name, method_id, name = "readings") %>%
+      count(variable, method_id, name = "readings") %>%
       my_kable_styling() %>%
       writeLines()
   }
@@ -931,14 +929,14 @@ if (nrow(multi) == 0) {
 ```{r driver_monotonic, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
 # A driver that reverses mid-curve is usually a curve that is really two, or
 # points that have been sorted out of measurement order.
-drawable2 <- curves %>% filter(!is.na(driver), as.integer(n_points) > 2)
+drawable2 <- responses %>% filter(!is.na(driver), as.integer(n_points) > 2)
 
 if (nrow(drawable2) > 0) {
   wobbly <- purrr::map_dfr(seq_len(nrow(drawable2)), function(i) {
     row <- drawable2[i, ]
     if (!row$driver %in% value_cols) return(NULL)
     v <- points %>%
-      filter(curve_id == row$curve_id) %>%
+      filter(response_id == row$response_id) %>%
       arrange(point_id) %>%
       pull(row$driver) %>%
       as.numeric() %>%
@@ -957,7 +955,7 @@ if (nrow(drawable2) > 0) {
     if (length(d) < 2) return(NULL)
     turns <- sum(diff(sign(d)) != 0)
     if (turns <= 1) return(NULL)
-    tibble::tibble(curve_id = row$curve_id, data_type = row$data_type,
+    tibble::tibble(response_id = row$response_id, data_type = row$data_type,
                    taxon_name = row$taxon_name, driver = row$driver,
                    `direction changes` = turns)
   })
@@ -968,7 +966,7 @@ if (nrow(drawable2) > 0) {
              "One reversal is normal -- most protocols step down and back up. ",
              "More than one, counting only steps larger than 5%% of the driver ",
              "range so measurement noise does not register, is worth a look: ",
-             "it can mean two curves recorded as one, or points reordered away ",
+             "it can mean two responses recorded as one, or points reordered away ",
              "from the order they were measured in. Around one curve in eight ",
              "across AusFizz trips this, so it is a prompt, not a verdict.\n"),
       nrow(wobbly), ifelse(nrow(wobbly) == 1, "", "s")))
@@ -979,7 +977,7 @@ if (nrow(drawable2) > 0) {
       my_kable_styling() %>%
       writeLines()
 
-    new_question("(section `measurements`) In the curves above the driver reverses direction more than once. Is that the measurement protocol, or should these be separate curves?")
+    new_question("(section `measurements`) In the responses above the driver reverses direction more than once. Is that the measurement protocol, or should these be separate responses?")
   }
 }
 ```
@@ -1061,30 +1059,6 @@ if (is.null(treatments) || nrow(treatments) == 0) {
 
     new_question("(section `treatments`) Can you give a number for the treatment levels above -- how much water, how many degrees, how much CO2?")
   }
-}
-```
-
-## Derived traits
-
-```{r derived_traits, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
-# `traits` here means what it means in AusTraits: a parameter with one value per
-# entity, fitted or summarised from the curves. The variables above are not
-# those, which is the distinction this database exists to make.
-derived <- data_study$traits %>%
-  filter(trait_name %in% names(definitions_traits))
-
-if (nrow(derived) == 0) {
-  writeLines(paste0(
-    "\nNo derived traits yet. A trait here means a parameter fitted from the ",
-    "curves -- `Amax`, `Vcmax25`, `P50`, `TLP` -- which is what eventually ",
-    "reaches AusTraits. Nothing fits curves yet, so this section is empty on ",
-    "purpose; the readings themselves are under [Variables](#variables).\n"))
-} else {
-  derived %>%
-    group_by(trait_name) %>%
-    summarise(taxa = n_distinct(taxon_name), values = n(), .groups = "drop") %>%
-    my_kable_styling() %>%
-    writeLines()
 }
 ```
 

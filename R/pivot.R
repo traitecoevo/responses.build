@@ -8,16 +8,16 @@
 
 check_pivot_wider <- function(dataset) {
 
-  duplicates <- dataset$traits %>%
+  duplicates <- dataset$measurements %>%
     dplyr::select(
-      dplyr::all_of(c("dataset_id", "trait_name", "value", "observation_id", "value_type",
+      dplyr::all_of(c("dataset_id", "variable", "value", "observation_id", "value_type",
       "repeat_measurements_id", "method_id", "method_context_id"))
     ) %>%
-    tidyr::pivot_wider(names_from = "trait_name", values_from = "value", values_fn = length) %>%
+    tidyr::pivot_wider(names_from = "variable", values_from = "value", values_fn = length) %>%
     tidyr::pivot_longer(cols = 7:ncol(.)) %>%
-    dplyr::rename(dplyr::all_of(c("trait_name" = "name", "number_of_duplicates" = "value"))) %>%
+    dplyr::rename(dplyr::all_of(c("variable" = "name", "number_of_duplicates" = "value"))) %>%
     dplyr::select(
-      dplyr::all_of(c("dataset_id", "trait_name", "number_of_duplicates", "observation_id",
+      dplyr::all_of(c("dataset_id", "variable", "number_of_duplicates", "observation_id",
       "value_type")), everything()
     ) %>%
     dplyr::filter(.data$number_of_duplicates > 1) %>%

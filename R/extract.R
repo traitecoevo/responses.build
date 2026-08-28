@@ -22,7 +22,7 @@ extract_dataset <- function(database, dataset_id) {
          call. = FALSE)
   }
 
-  known <- unique(database[["traits"]][["dataset_id"]])
+  known <- unique(database[["measurements"]][["dataset_id"]])
 
   if (!dataset_id %in% known) {
     # Naming near misses beats "0 rows", which is what a typo used to produce.
@@ -49,7 +49,7 @@ extract_dataset <- function(database, dataset_id) {
   # `taxa` has no `dataset_id`; keep the taxa this dataset actually recorded
   if (!is.null(out[["taxa"]]) && "taxon_name" %in% names(out[["taxa"]])) {
     out[["taxa"]] <- out[["taxa"]] %>%
-      dplyr::filter(.data$taxon_name %in% c(out[["traits"]][["taxon_name"]],
+      dplyr::filter(.data$taxon_name %in% c(out[["measurements"]][["taxon_name"]],
                                             out[["excluded_data"]][["taxon_name"]]))
   }
 
@@ -64,8 +64,8 @@ extract_dataset <- function(database, dataset_id) {
 
   # `definitions` covers the whole compilation's vocabulary; a report on one
   # dataset wants the variables that dataset measured
-  measured <- unique(c(out[["traits"]][["trait_name"]],
-                       out[["excluded_data"]][["trait_name"]]))
+  measured <- unique(c(out[["measurements"]][["variable"]],
+                       out[["excluded_data"]][["variable"]]))
   if (!is.null(out[["definitions"]]) && length(measured) > 0) {
     out[["definitions"]] <- out[["definitions"]][
       intersect(names(out[["definitions"]]), measured)
@@ -105,7 +105,7 @@ join_taxa <- function(database, vars = c("family", "genus", "taxon_rank")) {
     dplyr::select(dplyr::all_of(c("taxon_name", vars))) %>%
     dplyr::distinct(.data$taxon_name, .keep_all = TRUE)
 
-  for (name in c("traits", "curves", "excluded_data")) {
+  for (name in c("measurements", "responses", "excluded_data")) {
     tbl <- database[[name]]
     if (is.null(tbl) || !"taxon_name" %in% names(tbl)) next
     database[[name]] <- tbl %>%

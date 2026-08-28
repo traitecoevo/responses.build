@@ -263,13 +263,13 @@ dataset_test_worker <-
 
             test_expect_list(metadata[["locations"]][[v]], info = paste0(red(f), "\tlocation ", v))
 
-            # If fields do not contain both 'latitude range (deg)' and 'longitude range (deg)'
-            if (!(all(c("latitude range (deg)", "longitude range (deg)") %in% names(metadata[["locations"]][[v]])))) {
+            # If fields do not contain both 'latitude_range_deg' and 'longitude_range_deg'
+            if (!(all(c("latitude_range_deg", "longitude_range_deg") %in% names(metadata[["locations"]][[v]])))) {
 
-              # Check that it contains 'latitude (deg)' and 'longitude (deg)'
+              # Check that it contains latitude_deg and longitude_deg
               test_expect_contains(
                 names(metadata[["locations"]][[v]]),
-                c("latitude (deg)", "longitude (deg)"),
+                c("latitude_deg", "longitude_deg"),
                 info = paste0(red(f), "\tlocation '", v, "'")
               )
             }
@@ -731,7 +731,7 @@ dataset_test_worker <-
         parsed_data <-
           parsed_data$traits %>%
           process_add_all_columns(
-            c(names(schema[["austraits"]][["elements"]][["traits"]][["elements"]]),
+            c(util_pipeline_columns(schema),
               "parsing_id", "location_name", "taxonomic_resolution", "methods", "unit_in")
           )
 
@@ -895,13 +895,13 @@ dataset_test_worker <-
             info = sprintf("%s\tbuilding dataset", red(dataset_id)))
 
           ## Check that traits table is not empty
-          test_expect_false(nrow(dataset$traits) == 0, info = sprintf("%s\t`traits` table is empty", red(dataset_id)))
+          test_expect_false(nrow(dataset$measurements) == 0, info = sprintf("%s\t`measurements` table is empty", red(dataset_id)))
 
           ## Check that dataset can pivot wider
-          if (nrow(dataset$traits) > 0) {
+          if (nrow(dataset$measurements) > 0) {
             test_expect_true(
               dataset %>% check_pivot_wider(),
-              info = sprintf("%s\tduplicate rows detected; `traits` table cannot pivot wider", red(dataset_id))
+              info = sprintf("%s\tduplicate rows detected; readings cannot pivot wider", red(dataset_id))
             )
           }
 

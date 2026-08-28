@@ -269,12 +269,12 @@ write_metadata <- function(data, path, style_code = FALSE) {
     y["identifiers"] <- NA
   }
 
-  # `measurements` is the Stage 3 form of `traits`; both are written so a
+  # `protocols` is the Stage 3 form of `traits`; both are written so a
   # repository can hold either. Sections a file does not have come back NULL
   # and are dropped, so listing both is safe.
   sections <- c("source", "contributors", "dataset", "descriptors",
                 "identifiers", "locations",
-                "contexts", "treatments", "measurements", "traits",
+                "contexts", "treatments", "protocols", "traits",
                 "substitutions", "taxonomic_updates", "exclude_observations",
                 "questions")
 
@@ -461,4 +461,25 @@ util_custom_code_env <- function() {
 
   .custom_code_env$env <- env
   env
+}
+
+
+#' Columns the pipeline carries, as opposed to the ones it emits
+#'
+#' The schema names the columns of the *built* `measurements` table. Two of
+#' those -- `response_id` and `point_id` -- are stamped on at the end, once the
+#' curves are identified, and the table's `variable` is called `trait_name`
+#' inside the pipeline, where it is still the metadata's name for it.
+#'
+#' Reading the schema directly to build the pipeline's column set therefore
+#' asks for columns that do not exist yet and misses one that does.
+#'
+#' @param schema The schema
+#'
+#' @return A character vector of column names
+#' @noRd
+util_pipeline_columns <- function(schema) {
+  cols <- names(schema[["austraits"]][["elements"]][["measurements"]][["elements"]])
+  cols <- setdiff(cols, c("response_id", "point_id"))
+  replace(cols, cols == "variable", "trait_name")
 }

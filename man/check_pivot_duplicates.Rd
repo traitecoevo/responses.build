@@ -6,7 +6,7 @@
 \usage{
 check_pivot_duplicates(
   database_object,
-  dataset_ids = unique(database_object$traits$dataset_id)
+  dataset_ids = unique(database_object$measurements$dataset_id)
 )
 }
 \arguments{

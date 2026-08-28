@@ -72,19 +72,19 @@ locations:
   Atherton:
     description: Tropical rain forest vegetation.
     elevation (m): 800
-    latitude (deg): -17.1166667
-    longitude (deg): 145.65
+    latitude_deg: -17.1166667
+    longitude_deg: 145.65
     rainfall (mm): 2000
   Cape Tribulation:
     description: Complex mesophyll vine forest in tropical rain forest.
     elevation (m): 25
-    latitude (deg): .na
-    longitude (deg): .na
+    latitude_deg: .na
+    longitude_deg: .na
     rainfall (mm): 3500
   test_excluded_site:
     description: test excluded site
-    latitude (deg): .na
-    longitude (deg): .na
+    latitude_deg: .na
+    longitude_deg: .na
 contexts:
 - context_property: plant sex
   category: entity_context

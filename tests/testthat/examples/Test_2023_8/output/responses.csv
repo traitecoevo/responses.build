@@ -1,4 +1,4 @@
-dataset_id,curve_id,data_type,driver,driver_outer,taxon_name,observation_id,individual_id,population_id,collection_date,location_id,treatment_context_id,entity_context_id,temporal_context_id,method_context_id,instrument,n_points,point_order
+dataset_id,response_id,data_type,driver,driver_outer,taxon_name,observation_id,individual_id,population_id,collection_date,location_id,treatment_context_id,entity_context_id,temporal_context_id,method_context_id,instrument,n_points,point_order
 Test_2023_8,01,,,,Eucalyptus miniata,01,01,01,2-Sep-08,01,,,,,,21,recorded
 Test_2023_8,02,,,,Eucalyptus miniata,02,02,01,2-Sep-08,01,,,,,,11,recorded
 Test_2023_8,03,,,,Eucalyptus miniata,03,03,01,2-Sep-08,01,,,,,,21,recorded

@@ -123,15 +123,15 @@ dataset:
   notes: .na
 locations:
   australia:
-    latitude (deg): -25.702
-    longitude (deg): 125.239
+    latitude_deg: -25.702
+    longitude_deg: 125.239
     description: First made-up location for testing
     entity_type: population
     life_stage: juvenile
     collection_date: '2020'
   australia_2:
-    latitude (deg): -27.158
-    longitude (deg): 142.685
+    latitude_deg: -27.158
+    longitude_deg: 142.685
     description: Second made-up location for testing
     measurement_remarks: From `australia_2` site
 contexts:

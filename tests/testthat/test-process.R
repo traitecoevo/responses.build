@@ -28,7 +28,7 @@ test_that("`dataset_process` is working", {
   # `traits.build` until the austraits linkage was severed; pinned so a rename
   # cannot happen by accident.
   expect_equal(class(x), c("list", "responses.build"))
-  expect_length(x, 17)   # + curves, curve_points, treatments
+  expect_length(x, 16)   # + curves, treatments; curve_points is a view, not a table
   expect_named(x, austraits_names)
   expect_equal(nrow(x$excluded_data), 0)
   # Test to see if `filter_missing_values` argument works
@@ -207,7 +207,7 @@ test_that("the build pipeline runs end to end", {
   database <- bind_databases(databases = list(Test_2023_1 = built))
 
   expect_s3_class(database, "responses.build")
-  expect_equal(nrow(database$traits), nrow(built$traits))
+  expect_equal(nrow(database$measurements), nrow(built$measurements))
 })
 
 

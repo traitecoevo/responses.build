@@ -1,4 +1,4 @@
-# `measurements:` is how a dataset says what it measured. It desugars into the
+# `protocols:` is how a dataset says how it measured. It desugars into the
 # `traits:` list the rest of the build understands, so nothing downstream needs
 # to know which form a dataset was written in.
 
@@ -28,13 +28,13 @@ profile_dir <- function() {
 
 dts <- list(ACi = list(driver = "Ci"), survey = list(driver = ".na"))
 
-md <- function(...) list(dataset = list(), measurements = list(...))
+md <- function(...) list(dataset = list(), protocols = list(...))
 
 
 test_that("naming an instrument maps its whole column set", {
   instr <- get_instruments(file.path(profile_dir(), "instruments"))
 
-  out <- metadata_expand_measurements(
+  out <- metadata_expand_protocols(
     md(list(data_type = "ACi", instrument = "Test IRGA", methods = "how")),
     instr, dts
   )
@@ -55,9 +55,9 @@ test_that("naming an instrument maps its whole column set", {
 test_that("an instrument profile resolves by file stem or by instrument string", {
   instr <- get_instruments(file.path(profile_dir(), "instruments"))
 
-  by_stem <- metadata_expand_measurements(
+  by_stem <- metadata_expand_protocols(
     md(list(instrument = "test_irga", methods = "how")), instr, dts)
-  by_name <- metadata_expand_measurements(
+  by_name <- metadata_expand_protocols(
     md(list(instrument = "Test IRGA", methods = "how")), instr, dts)
 
   expect_equal(by_stem$traits, by_name$traits)
@@ -67,7 +67,7 @@ test_that("an instrument profile resolves by file stem or by instrument string",
 test_that("`use` restricts to part of the profile", {
   instr <- get_instruments(file.path(profile_dir(), "instruments"))
 
-  out <- metadata_expand_measurements(
+  out <- metadata_expand_protocols(
     md(list(instrument = "Test IRGA", methods = "how", use = list("A", "Ci"))),
     instr, dts
   )
@@ -82,7 +82,7 @@ test_that("`variables_extra` survives `use` -- it is not part of the profile", {
   # cover. The build gate caught it.
   instr <- get_instruments(file.path(profile_dir(), "instruments"))
 
-  out <- metadata_expand_measurements(
+  out <- metadata_expand_protocols(
     md(list(
       instrument = "Test IRGA", methods = "how", use = list("A"),
       variables_extra = list(list(variable = "PSIstem", var_in = "MPa", unit_in = "MPa"))
@@ -98,7 +98,7 @@ test_that("`variables_extra` survives `use` -- it is not part of the profile", {
 test_that("`variables_extra` overrides the profile, and carries its own settings", {
   instr <- get_instruments(file.path(profile_dir(), "instruments"))
 
-  out <- metadata_expand_measurements(
+  out <- metadata_expand_protocols(
     md(list(
       instrument = "Test IRGA", methods = "how", use = list("A"),
       variables_extra = list(list(
@@ -122,9 +122,9 @@ test_that("`column_suffix` carries a second data type in one file", {
   # `Photo` and `Photo_survey_Amax`. One line, not a duplicated column map.
   instr <- get_instruments(file.path(profile_dir(), "instruments"))
 
-  out <- metadata_expand_measurements(
+  out <- metadata_expand_protocols(
     md(
-      list(data_type = "ACi", instrument = "Test IRGA", methods = "curves"),
+      list(data_type = "ACi", instrument = "Test IRGA", methods = "responses"),
       list(data_type = "survey", instrument = "Test IRGA",
            column_suffix = "_survey_Amax", methods = "survey points")
     ),
@@ -135,7 +135,7 @@ test_that("`column_suffix` carries a second data type in one file", {
   expect_equal(nrow(mapping), 6)
   expect_true("Photo" %in% mapping$var_in)
   expect_true("Photo_survey_Amax" %in% mapping$var_in)
-  expect_setequal(unique(mapping$methods), c("curves", "survey points"))
+  expect_setequal(unique(mapping$methods), c("responses", "survey points"))
 })
 
 
@@ -145,12 +145,12 @@ test_that("a hand-written `traits:` block still builds, and `measurements:` wins
   hand <- list(dataset = list(), traits = list(
     list(var_in = "X", unit_in = "m", trait_name = "A", methods = "old")
   ))
-  expect_equal(metadata_expand_measurements(hand, instr, dts), hand)
+  expect_equal(metadata_expand_protocols(hand, instr, dts), hand)
 
   both <- hand
-  both$measurements <- list(list(instrument = "Test IRGA", methods = "new"))
+  both$protocols <- list(list(instrument = "Test IRGA", methods = "new"))
   expect_equal(unique(convert_list_to_df2(
-    metadata_expand_measurements(both, instr, dts)$traits)$methods), "new")
+    metadata_expand_protocols(both, instr, dts)$traits)$methods), "new")
 })
 
 
@@ -158,24 +158,24 @@ test_that("a block that cannot be resolved says which block and why", {
   instr <- get_instruments(file.path(profile_dir(), "instruments"))
 
   expect_error(
-    metadata_expand_measurements(md(list(instrument = "Test IRGA")), instr, dts, "Falster_2005"),
-    "Falster_2005, measurements block 1: no `methods`"
+    metadata_expand_protocols(md(list(instrument = "Test IRGA")), instr, dts, "Falster_2005"),
+    "Falster_2005, protocols block 1: no `methods`"
   )
   expect_error(
-    metadata_expand_measurements(md(list(instrument = "Nope", methods = "how")), instr, dts),
+    metadata_expand_protocols(md(list(instrument = "Nope", methods = "how")), instr, dts),
     "no profile for instrument 'Nope'"
   )
   expect_error(
-    metadata_expand_measurements(
+    metadata_expand_protocols(
       md(list(instrument = "Test IRGA", methods = "how", use = list("Vcmax"))), instr, dts),
     "`use` names variables the instrument profile does not map: Vcmax"
   )
   expect_error(
-    metadata_expand_measurements(md(list(methods = "how")), instr, dts),
+    metadata_expand_protocols(md(list(methods = "how")), instr, dts),
     "names neither an `instrument` nor any `variables_extra`"
   )
   expect_error(
-    metadata_expand_measurements(
+    metadata_expand_protocols(
       md(list(data_type = "not a type", instrument = "Test IRGA", methods = "how")),
       instr, dts),
     "is not defined in config/data_types.yml"

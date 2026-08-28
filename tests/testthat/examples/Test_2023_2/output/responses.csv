@@ -1,4 +1,4 @@
-dataset_id,curve_id,data_type,driver,driver_outer,taxon_name,observation_id,individual_id,population_id,collection_date,location_id,treatment_context_id,entity_context_id,temporal_context_id,method_context_id,instrument,n_points,point_order
+dataset_id,response_id,data_type,driver,driver_outer,taxon_name,observation_id,individual_id,population_id,collection_date,location_id,treatment_context_id,entity_context_id,temporal_context_id,method_context_id,instrument,n_points,point_order
 Test_2023_2,001,,,,Acacia celsa,001,,01,2004-02,01,,,,,,1,file order
 Test_2023_2,002,,,,Acacia celsa,002,,01,2004-03,01,,,,,,1,file order
 Test_2023_2,003,,,,Acacia celsa,003,,01,2004-02,01,,,,,,1,file order

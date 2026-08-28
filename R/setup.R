@@ -384,8 +384,8 @@ metadata_add_locations <- function(dataset_id, location_data, user_responses = N
   if (is.na(keep[1])) {
     location_data <-  location_data %>%
     dplyr::mutate(
-      `latitude (deg)` = NA_character_,
-      `longitude (deg)` = NA_character_,
+      latitude_deg = NA_character_,
+      longitude_deg = NA_character_,
       `description` = NA_character_,
       )
   }
@@ -401,7 +401,7 @@ metadata_add_locations <- function(dataset_id, location_data, user_responses = N
         red("with variables ") %+% green("'%s'\n\t") %+% red("Please complete information in %s"),
       blue(dataset_id),
       paste(names(metadata$locations), collapse = "', '"),
-      ifelse(is.na(keep[1]), "latitude (deg)', 'longitude (deg)', 'description", paste(keep, collapse = "', '")),
+      ifelse(is.na(keep[1]), "latitude_deg', longitude_deg, 'description", paste(keep, collapse = "', '")),
       blue(dataset_id %>% metadata_path_dataset_id())
     )
   )
@@ -1422,7 +1422,7 @@ select_pipeline_template <- function(method) {
 #' @export
 dataset_find_taxon <- function(taxa, austraits, original_name = FALSE) {
 
-  data <- austraits$traits
+  data <- austraits$measurements
 
   if (!original_name) {
     data <- data %>%

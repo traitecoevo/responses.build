@@ -23,7 +23,7 @@ examples_dir <- "examples"
 dataset_ids <- sprintf("Test_2023_%d", 1:9)
 
 # Every table in the database structure, not a hand-maintained subset
-tables <- c("traits", "locations", "contexts", "methods", "excluded_data",
+tables <- c("measurements", "responses", "treatments", "locations", "contexts", "methods", "excluded_data",
             "taxonomic_updates", "taxa", "contributors", "identifiers")
 
 
@@ -67,8 +67,8 @@ expect_dataset_matches_output <- function(dataset_id) {
     expect_equal(built[[v]], expected, info = paste(dataset_id, v))
   }
 
-  # `definitions` is the subset of `config/traits.yml` covering the traits this
-  # dataset actually reports, so it pins the trait-selection logic
+  # `definitions` is the subset of the compilation's vocabulary covering the
+  # variables this dataset reports, so it pins the selection logic
   expect_equal(
     built$definitions,
     read_yaml(file.path(output_dir, "definitions.yml")),

@@ -36,10 +36,10 @@ dataset_configure <- function(
   # Read metadata
   metadata <- read_metadata(filename_metadata)
 
-  # A `measurements:` block is desugared into the `traits:` list the rest of
+  # A `protocols:` block is desugared into the `traits:` list the rest of
   # the build understands, so nothing downstream needs to know which form the
   # dataset was written in. See R/measurements.R.
-  metadata <- metadata_expand_measurements(
+  metadata <- metadata_expand_protocols(
     metadata, instruments, data_types, dataset_id
   )
 
@@ -207,7 +207,7 @@ dataset_process <- function(filename_data_raw,
   traits <-
     traits$traits %>%
     process_add_all_columns(
-      c(names(schema[["austraits"]][["elements"]][["traits"]][["elements"]]),
+      c(util_pipeline_columns(schema),
         "parsing_id", "location_name", "taxonomic_resolution", "methods", "unit_in", identifiers$var_in)
     )
 
@@ -368,7 +368,7 @@ dataset_process <- function(filename_data_raw,
       tmp_bind
     ) %>%
     dplyr::select(
-      dplyr::all_of(c(names(schema[["austraits"]][["elements"]][["traits"]][["elements"]]),
+      dplyr::all_of(c(util_pipeline_columns(schema),
       "error", "taxonomic_resolution", "unit_in"))
     )
 
@@ -403,18 +403,23 @@ dataset_process <- function(filename_data_raw,
     )
 
 
-  # Identify the curves. This reads the processed traits table rather than
-  # replacing it: `traits` is still what every later step joins against, and
-  # Stage 3's migration is gated on `curves` and `curve_points` not moving.
+  # Identify the curves, and stamp every reading with the curve and point it
+  # belongs to. There is no second, wide copy of the readings: a wide table
+  # cannot carry a reading's `value_type` or `replicates`, so the long table is
+  # the lossless form and `response_pivot_wider()` makes the view on demand.
   traits_ok <- traits %>%
     dplyr::filter(is.na(.data$error)) %>%
     dplyr::select(-dplyr::all_of(c("error", "unit_in")))
 
-  curve_tables <- process_create_curves(
+  curve_tables <- process_create_responses(
     traits_ok,
     context_ids$contexts,
     data_types
   )
+
+  measurements <- dplyr::bind_cols(traits_ok, curve_tables$keys) %>%
+    dplyr::rename(dplyr::all_of(c(variable = "trait_name"))) %>%
+    dplyr::relocate(dplyr::all_of(c("response_id", "point_id")), .before = "observation_id")
 
   # What each treatment actually did, as numbers. Additive: the treatment
   # context keeps its id and its link to the measurements, and this says what
@@ -426,17 +431,18 @@ dataset_process <- function(filename_data_raw,
   # Combine for final output
   ret <-
     list(
-      traits = traits_ok,
-      curves = curve_tables$curves,
-      curve_points = curve_tables$curve_points,
+      measurements = measurements,
+      responses = curve_tables$responses,
       locations = locations,
       treatments = treatments,
       contexts = context_ids$contexts %>% dplyr::select(-dplyr::any_of(c("var_in"))),
-      methods = methods,
+      methods = methods %>%
+        dplyr::rename(dplyr::all_of(c(variable = "trait_name"))),
       excluded_data = traits %>%
       dplyr::filter(!is.na(.data$error)) %>%
       dplyr::select(dplyr::all_of(c("error")), everything()) %>%
-      dplyr::select(-dplyr::all_of(c("unit_in"))),
+      dplyr::select(-dplyr::all_of(c("unit_in"))) %>%
+      dplyr::rename(dplyr::all_of(c(variable = "trait_name"))),
       taxonomic_updates = taxonomic_updates %>%
         dplyr::filter(.data$aligned_name %in% traits$taxon_name),
       taxa = taxonomic_updates %>%
@@ -1051,8 +1057,8 @@ process_format_locations <- function(my_list, dataset_id, schema) {
     dplyr::mutate(
       i = dplyr::case_when(
         .data$location_property == "description" ~ 1,
-        .data$location_property == "latitude (deg)" ~ 2,
-        .data$location_property == "longitude (deg)" ~ 3,
+        .data$location_property == "latitude_deg" ~ 2,
+        .data$location_property == "longitude_deg" ~ 3,
         TRUE ~ 4)
     ) %>%
     dplyr::arrange(.data$location_id, .data$location_name, .data$i, .data$location_property) %>%
@@ -2219,8 +2225,8 @@ dataset_update_taxonomy <- function(austraits_raw, taxa) {
     dplyr::distinct() %>%
     dplyr::arrange(.data$aligned_name)
 
-  austraits_raw$traits <-
-    austraits_raw$traits %>%
+  austraits_raw$measurements <-
+    austraits_raw$measurements %>%
     dplyr::rename(dplyr::all_of(c("aligned_name" = "taxon_name"))) %>%
     dplyr::left_join(by = "aligned_name",
               taxa %>% dplyr::select(dplyr::all_of(c("aligned_name", "taxon_name")))
@@ -2235,13 +2241,13 @@ dataset_update_taxonomy <- function(austraits_raw, taxa) {
 
   # in the chunk above, if the traits table is empty (i.e. all values in excluded data)
   # the column `taxon_name` becomes logical and then datasets can't bind
-  if (nrow(austraits_raw$traits) == 0) {
-    austraits_raw$traits <- austraits_raw$traits %>%
+  if (nrow(austraits_raw$measurements) == 0) {
+    austraits_raw$measurements <- austraits_raw$measurements %>%
       dplyr::mutate(taxon_name = as.character(.data$taxon_name))
   }
 
   species_tmp <-
-    austraits_raw$traits %>%
+    austraits_raw$measurements %>%
     dplyr::select(dplyr::all_of(c("taxon_name", "taxonomic_resolution"))) %>%
     dplyr::distinct() %>%
     util_df_convert_character() %>%
@@ -2278,8 +2284,8 @@ dataset_update_taxonomy <- function(austraits_raw, taxa) {
     dplyr::select(dplyr::any_of(columns_in_taxon_list))
 
   # Now `taxonomic_resolution` be removed from the traits table
-  austraits_raw$traits <-
-    austraits_raw$traits %>%
+  austraits_raw$measurements <-
+    austraits_raw$measurements %>%
       dplyr::select(-dplyr::all_of(c("taxonomic_resolution")))
 
   austraits_raw$excluded_data <-
@@ -2372,11 +2378,11 @@ write_plaintext <- function(austraits, path) {
 #' @export
 check_pivot_duplicates <- function(
   database_object,
-  dataset_ids = unique(database_object$traits$dataset_id)
+  dataset_ids = unique(database_object$measurements$dataset_id)
 ) {
 
   # Check for duplicates
-  database_object$traits %>%
+  database_object$measurements %>%
     dplyr::filter(.data$dataset_id %in% dataset_ids) %>%
     dplyr::select(
       # `taxon_name` and `original_name` are not needed for pivoting but are included for informative purposes

@@ -10,15 +10,26 @@ Status as of 2026-08-28. This file records what has been decided and why, what i
 
 The curves never fitted into AusTraits. The *parameters extracted from them* always did — and that is the long-term purpose of this repository: fit curves, derive traits, contribute those traits to AusTraits.
 
-## The three levels
+## The two levels
 
 ```
-variables      raw per-point readings              A, Ci, gsw, Tleaf, Qin, PSIstem, f0
-curves         the curve as an addressable object
-traits         derived parameters, one per entity  Amax, Vcmax25, Jmax25, P50, TLP
+variables      what is read at a point            A, Ci, gsw, Tleaf, Qin, PSIstem, f0
+responses      one entity, one time, one set of method settings
 ```
 
-`traits` keeps its name because it is exactly right for the third row. It starts empty rather than misused. `variables` is the term for the raw readings — bland, exact, and it covers a LiCor channel, a pressure-chamber reading and a fluorometer output alike.
+A **response** is one measurement event: the readings taken on one entity, at one time, under one set of method settings. A **curve** is a response measured across a driver with more than one point — a kind of response, recorded by `data_type` and `driver`, not a separate table.
+
+That distinction is not pedantry. **22,680 of 25,699 responses in AusFizz have exactly one point** — 88%. Calling the table `curves` meant writing "a single-point observation is a curve of length one, not a special case" in three places to defend it, and a comment you have to keep repeating is a name fighting its data.
+
+**There are no derived parameters here.** `Amax`, `Vcmax25`, `P50` are fitted *from* these data, and fitting is out of scope for this compilation. `config/traits.yml` is gone.
+
+## Two tables, no duplication
+
+`measurements` is one row per reading — value, unit, `value_type`, `replicates`, `method_id`, and the `response_id` / `point_id` it belongs to. **It is the lossless form.** A wide table holds one cell per (point, variable): it can hold a value but not what kind of value it is, and measured on AusFizz, 17 `(dataset, variable, method_id)` groups carry more than one `value_type` *and* more than one `replicates`.
+
+So wide is a **view**, made by `response_pivot_wider()`, not a stored table. An earlier version stored both; that cost 39 Mb of duplicate and let the two drift. The pivot is one step with nothing to re-derive, because `response_id` and `point_id` are columns — which was the thing actually missing before responses were first-class.
+
+`response_pivot_wider()` also does the three things every caller did next: keep one `data_type`, coerce the values the definitions call numeric, and drop the columns that selection never used.
 
 **Naming rule, everywhere:** identifiers are `snake_case`; they carry no units, spaces or brackets; units live in a `unit` field beside the value. `latitude (deg)` → `latitude` + `unit: deg`. `leaf_temperature_settings_Cel` → `leaf_temperature_setpoint` + `unit: C`.
 

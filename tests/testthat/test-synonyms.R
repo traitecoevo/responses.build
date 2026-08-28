@@ -177,15 +177,15 @@ test_that("a dataset substitution is applied before the database-wide synonyms",
   built <- dataset_process("examples/Test_2023_1/data.csv", config, schema,
                            resource_metadata, unit_conversions)
 
-  growth_form <- built[["traits"]] %>%
-    dplyr::filter(.data$trait_name == "plant_growth_form")
+  growth_form <- built[["measurements"]] %>%
+    dplyr::filter(.data$variable == "plant_growth_form")
 
   expect_true("climber_herbaceous" %in% growth_form[["value"]])
   expect_false("climber" %in% growth_form[["value"]])
 
   # the unresolved synonym must not leak through, nor be excluded as unsupported
   excluded <- built[["excluded_data"]] %>%
-    dplyr::filter(.data$trait_name == "plant_growth_form")
+    dplyr::filter(.data$variable == "plant_growth_form")
   expect_false("vine" %in% excluded[["value"]])
   expect_false("vine" %in% growth_form[["value"]])
 })

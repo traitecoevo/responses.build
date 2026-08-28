@@ -49,15 +49,17 @@ get_instruments <- function(path = NULL) {
 
 #' Expand a `measurements:` block into the internal trait mapping
 #'
-#' `measurements:` is how a dataset says what it measured, from Stage 3 onward.
-#' One block per data file:
+#' `protocols:` is how a dataset says how it measured. One block per way of
+#' measuring -- a data type, an instrument, a methods paragraph and a column
+#' map. Two blocks can point at the same file, which is what `column_suffix` is
+#' for, and one block can cover several files.
 #'
 #' ```yaml
-#' measurements:
+#' protocols:
 #' - file: data.csv
 #'   data_type: ACi-T
 #'   instrument: licor_6400
-#'   curve_id: Curve_Id
+#'   response_id: Curve_Id
 #'   methods: |
 #'     Each Anet-Ci response curve started with ...
 #'   variables_extra:
@@ -85,14 +87,14 @@ get_instruments <- function(path = NULL) {
 #'
 #' The build is unchanged. Stage 3 changes how metadata is *written*, not what
 #' the build *produces* -- which is not a shortcut, it is the migration
-#' invariant. `curves` and `curve_points` are gated on being identical before
+#' invariant. `curves` and the readings are gated on being identical before
 #' and after, and they would not be if `data_type` stopped being a method
 #' context, because `method_context_id` is part of a curve's identity. Moving
 #' the descriptors out of `contexts` in the *output* is a separate change with
 #' its own gate.
 #'
 #' A dataset keeping a hand-written `traits:` block still builds. Both forms are
-#' read; `measurements:` wins if both are present.
+#' read; `protocols:` wins if both are present.
 #'
 #' The instrument profile supplies `var_in` and `unit_in` for each variable it
 #' knows. `variables_extra` adds or overrides, and a dataset whose file
@@ -105,11 +107,11 @@ get_instruments <- function(path = NULL) {
 #'
 #' @return The metadata, with `traits` populated from `measurements`
 #' @noRd
-metadata_expand_measurements <- function(metadata, instruments = list(),
+metadata_expand_protocols <- function(metadata, instruments = list(),
                                          data_types = list(),
                                          dataset_id = "this dataset") {
 
-  blocks <- metadata[["measurements"]]
+  blocks <- metadata[["protocols"]]
 
   if (is.null(blocks) || length(blocks) == 0) return(metadata)
 
@@ -126,7 +128,7 @@ metadata_expand_measurements <- function(metadata, instruments = list(),
 
   for (i in seq_along(blocks)) {
     block <- blocks[[i]]
-    where <- sprintf("%s, measurements block %d", dataset_id, i)
+    where <- sprintf("%s, protocols block %d", dataset_id, i)
 
     if (is.null(block[["methods"]])) {
       stop(where, ": no `methods`. Every measurement needs to say how it was ",
