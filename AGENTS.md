@@ -107,11 +107,14 @@ them there:
 - **[`governance/`](https://github.com/traitecoevo/austraits-meta/tree/main/governance)** —
   label taxonomy, board #9 conventions, release playbooks, triage.
 
-**Filing issues:** the whole family is tracked on one board,
-[AusTraits #9](https://github.com/orgs/traitecoevo/projects/9) (new issues auto-add to it). Follow
-the [issue & labelling guide](https://github.com/traitecoevo/austraits-meta/blob/main/governance/issue-guide.md):
-pick one work-type label (`bug` / `task` / `epic`); Status and Priority are set on the board, not as
-labels.
+**Filing issues:** this repo tracks to its own board,
+[AusFizz #19](https://github.com/orgs/traitecoevo/projects/19), shared with `AusFizz` and
+`ausfizz-private` (new issues auto-add to it) — *not* the family-wide
+[AusTraits #9](https://github.com/orgs/traitecoevo/projects/9). Board #19 mirrors #9's field
+conventions (Status, Priority, Area) and this repo's labels are identical to `traits.build`'s.
+Follow the [issue & labelling guide](https://github.com/traitecoevo/austraits-meta/blob/main/governance/issue-guide.md):
+pick one work-type label (`bug` / `task` / `epic`); Status, Priority and Area are set on the board,
+not as labels.
 
 **Commit messages:** every family repo squash-merges, so the **PR title and body become the permanent
 commit message**. Keep the subject ≤50 characters as typed and the body ≤10 lines; put the working
