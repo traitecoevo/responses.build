@@ -11,7 +11,12 @@ test_that("`metadata_create_template` is working", {
         skip_manual = TRUE)
     ))
 
-  metadata_names <- c("source", "contributors", "dataset", "identifiers", "locations", "contexts", "traits",
+  # Schema-driven, so a new template offers every section the model has --
+  # including `descriptors:` and `protocols:`, which are now how a dataset says
+  # what it measured
+  metadata_names <- c("source", "contributors", "dataset", "descriptors",
+                      "identifiers", "locations", "contexts",
+                      "growth_conditions", "provenance", "protocols", "traits",
                       "substitutions", "taxonomic_updates", "exclude_observations",
                       "questions")
   collectors_names <- c("last_name", "given_name", "ORCID", "affiliation")
@@ -44,7 +49,12 @@ test_that("`metadata_create_template` is working with simulated user input", {
     ".*(?=already exists and will be overwritten).*", perl = TRUE
   )
 
-  metadata_names <- c("source", "contributors", "dataset", "identifiers", "locations", "contexts", "traits",
+  # Schema-driven, so a new template offers every section the model has --
+  # including `descriptors:` and `protocols:`, which are now how a dataset says
+  # what it measured
+  metadata_names <- c("source", "contributors", "dataset", "descriptors",
+                      "identifiers", "locations", "contexts",
+                      "growth_conditions", "provenance", "protocols", "traits",
                       "substitutions", "taxonomic_updates", "exclude_observations",
                       "questions")
   # Test metadata exists with correct names

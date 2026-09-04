@@ -9,7 +9,7 @@ dataset_test_worker(
   path_config = "config",
   path_data = "data",
   schema = get_schema(),
-  definitions = get_schema(file.path(path_config, "traits.yml"), I("traits"))
+  definitions = get_definitions(dir = path_config)
 )
 }
 \arguments{

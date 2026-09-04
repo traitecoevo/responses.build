@@ -74,7 +74,10 @@ test_that("`get_definitions` names the directory it looked in", {
   withr::local_dir(d)
 
   expect_error(get_definitions(), "No variable definitions found")
-  expect_error(get_definitions(), "config/variables.yml")
+  expect_error(get_definitions(), "variables.yml")
+  # The message has to say where it looked, and the search directory is now a
+  # parameter rather than always `config`
+  expect_error(get_definitions(dir = "elsewhere"), "elsewhere")
 })
 
 

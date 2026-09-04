@@ -468,6 +468,14 @@ metadata:
         measurement_remarks: *measurement_remarks
         original_file: The name of the file initially submitted to AusTraits.
         notes: Generic notes about the study and processing of data.
+    descriptors:
+      description: >
+        Properties that are constant for the whole dataset - which instrument, whether the plants were
+        potted or in the ground, whether the leaf was attached. Each was previously written twice: a
+        literal inside `custom_R_code` making a column of one repeated value, and a `contexts` entry
+        naming that column. Allowable names and values are in the compilation's
+        `config/vocabularies.yml`.
+      type: list
     identifiers:
       description: A list of columns that include identifiers that cross-references observations to information in other databases and information indicating what identifier_type they are.
       type: array
@@ -494,6 +502,22 @@ metadata:
         find: The contextual values in the original data submitted (optional).
         value: The standardised contextual values, aligning syntax and wording with other studies.
         description: A description of the contextual values.
+    growth_conditions:
+      description: >
+        The conditions the plants were grown under, as numbers. An entry naming a treatment level
+        describes that level; an entry naming none applies to the whole dataset.
+      type: array
+    provenance:
+      description: >
+        Where the plant material came from. Attaches to a context level of any category, since whether
+        a provenance is a treatment depends on the experimental design.
+      type: array
+    protocols:
+      description: >
+        How the dataset was measured - one block per data type, instrument and methods paragraph.
+        Replaces a `traits:` list that restated the instrument's column map in every dataset. Two
+        blocks may read the same file, which is what `column_suffix` is for.
+      type: array
     traits:
       description: A translation table, mapping traits and units from a contributed study onto corresponding variables in AusTraits. The methods used to collect the data are also specified here.
       type: array

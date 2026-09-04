@@ -50,7 +50,7 @@ dataset_test_worker <-
            path_data = "data",
            schema = get_schema(),
            definitions =
-             get_schema(file.path(path_config, "traits.yml"), I("traits"))
+             get_definitions(dir = path_config)
            ) {
 
     # We're using 2nd edition of test that, which has "context" field
@@ -101,11 +101,36 @@ dataset_test_worker <-
         test_expect_allowed_text(readLines(f, encoding = "UTF-8"), info = paste0(red(f), "\tmetadata"), label = "metadata")
         testthat::expect_silent(metadata <- yaml::read_yaml(f))
 
-        if (!is.null(metadata[["identifiers"]])) {
-          test_expect_list_names_exact(
-            metadata, schema$metadata$elements %>% names(),
-            info = red(f), label = "metadata sections"
-          )
+        # A dataset written as `protocols:` has no `traits:` list until the
+        # block is expanded, and the checks below read `traits`. Expanding here
+        # tests what the build actually uses. Without it every migrated dataset
+        # failed with "metadata cannot be converted to a dataframe" -- which the
+        # package's own fixtures did not catch, because they still use the
+        # older `traits:` form.
+        metadata <- metadata_expand_protocols(
+          metadata, get_instruments(), get_data_types(), basename(dirname(f))
+        )
+
+        # Several metadata blocks are optional -- `provenance` is present in one
+        # AusFizz dataset, `growth_conditions` in twelve -- so a section list
+        # cannot be required to match exactly. Check instead that every section
+        # present is one the schema knows, and that the required ones are there.
+        OPTIONAL <- c("identifiers", "descriptors", "growth_conditions",
+                      "provenance", "protocols", "traits", "treatments",
+                      "substitutions", "taxonomic_updates",
+                      "exclude_observations", "questions")
+
+        test_expect_allowed(
+          names(metadata), schema$metadata$elements %>% names(),
+          info = red(f), label = "metadata sections"
+        )
+        test_expect_contains(
+          names(metadata),
+          setdiff(schema$metadata$elements %>% names(), OPTIONAL),
+          info = red(f)
+        )
+
+        if (FALSE) {
         } else {
           test_expect_list_names_allowed(
             metadata, schema$metadata$elements %>% names(),
