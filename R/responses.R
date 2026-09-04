@@ -174,26 +174,67 @@ process_create_responses <- function(traits, contexts, data_types = list()) {
     dplyr::left_join(data, ctx, by = c("dataset_id", link))
   }
 
-  # ---- one row per curve -------------------------------------------------
+  # ---- one row per response ----------------------------------------------
 
-  keys <- c("dataset_id", "observation_id", "method_context_id")
+  # Which data type each reading belongs to, needed *before* the responses are
+  # formed because it decides how they are formed -- see `spans_time` below.
+  traits <- traits %>% join_context("data_type", ".data_type")
+
+  spans_time <- names(data_types)[vapply(
+    data_types, function(x) isTRUE(x[["spans_time"]]), logical(1)
+  )]
+
+  # A response is one entity measured one way, and normally that is one
+  # occasion: `observation_id` includes `collection_date`, so a new day is a
+  # new response.
+  #
+  # For a data type measured *across* days that is wrong. A dry-down is one
+  # plant measured repeatedly as it dries, and dating it apart shatters the
+  # curve: `gs_drydown` came out as 1,378 responses of a single point each
+  # where it is 196 plants measured a median of 7 times. The driver varies
+  # between days, which is the whole design of the measurement.
+  #
+  # So a data type may declare `spans_time: yes`, and its responses group
+  # across `collection_date` and `temporal_context_id` -- the two components of
+  # `observation_id` that separate occasions.
+  traits <- traits %>%
+    dplyr::mutate(
+      .response_key = dplyr::if_else(
+        !is.na(.data$.data_type) & .data$.data_type %in% spans_time,
+        paste(.data$taxon_name, .data$population_id, .data$individual_id,
+              .data$entity_context_id, .data$method_context_id, sep = "-"),
+        paste(.data$observation_id, .data$method_context_id, sep = "-")
+      )
+    )
+
+  keys <- c("dataset_id", ".response_key")
 
   responses <-
     traits %>%
-    dplyr::distinct(dplyr::across(dplyr::all_of(c(
-      keys, "taxon_name", "individual_id", "population_id", "collection_date",
-      "location_id", "treatment_context_id", "entity_context_id",
-      "temporal_context_id"
-    )))) %>%
-    dplyr::arrange(.data$dataset_id, .data$observation_id, .data$method_context_id)
+    dplyr::group_by(.data$dataset_id, .data$.response_key) %>%
+    dplyr::summarise(
+      dplyr::across(
+        dplyr::all_of(c("observation_id", "method_context_id", "taxon_name",
+                        "individual_id", "population_id", "location_id",
+                        "treatment_context_id", "entity_context_id",
+                        "temporal_context_id")),
+        ~ .x[[1]]
+      ),
+      # A response spanning days has no single date; report the range it covers
+      collection_date = if (dplyr::n_distinct(.data$collection_date) == 1) {
+        .data$collection_date[[1]]
+      } else {
+        paste(range(util_sort_locale_independent(unique(.data$collection_date))),
+              collapse = "/")
+      },
+      .groups = "drop"
+    ) %>%
+    dplyr::arrange(.data$dataset_id, .data$.response_key)
 
   responses <- responses %>%
     dplyr::group_by(.data$dataset_id) %>%
     dplyr::mutate(
-      response_id = process_generate_id(
-        paste(.data$observation_id, .data$method_context_id, sep = "-"), "",
-        sort = TRUE
-      )
+      response_id = process_generate_id(.data$.response_key, "", sort = TRUE)
     ) %>%
     dplyr::ungroup()
 
@@ -236,6 +277,25 @@ process_create_responses <- function(traits, contexts, data_types = list()) {
         is.na(.data$repeat_measurements_id), "01", .data$repeat_measurements_id
       )
     )
+
+  # A response that spans days is ordered *by day*: each occasion is one point,
+  # and `repeat_measurements_id` -- numbered within an occasion -- says nothing
+  # about which came first. The date does, and it is recorded, so the order is
+  # `recorded` rather than file order.
+  if (length(spans_time) > 0) {
+    spanning <- points$.data_type %in% spans_time & !is.na(points$.data_type)
+
+    if (any(spanning)) {
+      points[spanning, ] <- points[spanning, ] %>%
+        dplyr::group_by(.data$dataset_id, .data$response_id) %>%
+        dplyr::mutate(
+          point_id = paste(.data$collection_date, .data$point_id) %>%
+            process_generate_id("", sort = TRUE),
+          point_order = "recorded"
+        ) %>%
+        dplyr::ungroup()
+    }
+  }
 
   order_of <-
     points %>%
