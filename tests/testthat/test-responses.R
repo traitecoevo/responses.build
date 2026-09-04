@@ -36,6 +36,15 @@ ctx <- tibble::tibble(
   link_vals = "01"
 )
 
+as_db <- function(traits, contexts = ctx, data_types = dts) {
+  keys <- process_create_responses(traits, contexts, data_types)
+  list(
+    measurements = dplyr::bind_cols(traits, keys) %>%
+      dplyr::rename(variable = "trait_name"),
+    data_types = data_types
+  )
+}
+
 dts <- list(ACi = list(driver = "Ci"),
             `ACi-T` = list(driver = "Ci", driver_outer = "leaf_temperature_setpoint"),
             survey = list(driver = ".na"))
@@ -44,21 +53,16 @@ dts <- list(ACi = list(driver = "Ci"),
 test_that("every reading is stamped with the curve and point it belongs to", {
   out <- process_create_responses(aci, ctx, dts)
 
-  expect_equal(nrow(out$responses), 1)
-  # One key row per reading, not per point: the readings stay long
-  expect_equal(nrow(out$keys), nrow(aci))
-  expect_equal(unique(out$keys$response_id), "01")
-  expect_setequal(out$keys$point_id, c("01", "02", "03", "04"))
+  # One row per reading, not per point: the readings stay long
+  expect_equal(nrow(out), nrow(aci))
+  expect_equal(unique(out$response_id), "01")
+  expect_setequal(out$point_id, c("01", "02", "03", "04"))
 })
 
 
 test_that("the wide view pairs a curve's variables, and is a view not a table", {
   out <- process_create_responses(aci, ctx, dts)
-  db <- list(
-    measurements = dplyr::bind_cols(aci, out$keys) %>%
-      dplyr::rename(variable = "trait_name"),
-    responses = out$responses
-  )
+  db <- as_db(aci)
 
   # There is no stored wide table -- that is the point
   expect_null(db$curve_points)
@@ -78,11 +82,7 @@ test_that("the wide view pairs a curve's variables, and is a view not a table", 
 
 test_that("`response_pivot_wider` can be restricted, and rejects an unknown variable", {
   out <- process_create_responses(aci, ctx, dts)
-  db <- list(
-    measurements = dplyr::bind_cols(aci, out$keys) %>%
-      dplyr::rename(variable = "trait_name"),
-    responses = out$responses
-  )
+  db <- as_db(aci)
 
   wide <- response_pivot_wider(db, vars = "A")
   expect_true("A" %in% names(wide))
@@ -93,35 +93,34 @@ test_that("`response_pivot_wider` can be restricted, and rejects an unknown vari
 })
 
 
-test_that("data_type and driver come off the context and the data type table", {
+test_that("data_type comes off the context, and is stamped on every reading", {
   out <- process_create_responses(aci, ctx, dts)
 
-  expect_equal(out$responses$data_type, "ACi")
-  expect_equal(out$responses$driver, "Ci")
-  expect_equal(out$responses$instrument, "Li6400 IRGA")
-  expect_equal(out$responses$n_points, "4")
-  expect_equal(out$responses$point_order, "recorded")
+  expect_equal(unique(out$data_type), "ACi")
+  expect_equal(unique(out$point_order), "recorded")
 })
 
 
-test_that("a nested data type carries both drivers", {
+test_that("the driver is looked up from the data types, not stored per reading", {
+  # `driver` and `driver_outer` are properties of the `data_type`. Storing them
+  # on 584,338 readings to say what nine lines of `data_types.yml` already say
+  # is what dropping the responses table removed.
+  db <- as_db(aci, ctx)
+  wide <- response_pivot_wider(db)
+  expect_equal(unique(wide$driver), "Ci")
+
   ctx2 <- ctx
   ctx2$value[[1]] <- "ACi-T"
-  out <- process_create_responses(aci, ctx2, dts)
+  expect_equal(unique(response_pivot_wider(as_db(aci, ctx2))$driver), "Ci")
 
-  expect_equal(out$responses$driver, "Ci")
-  expect_equal(out$responses$driver_outer, "leaf_temperature_setpoint")
-})
-
-
-test_that("`.na` driver and an unknown data type both give no driver", {
-  ctx2 <- ctx
-  ctx2$value[[1]] <- "survey"
-  expect_true(is.na(process_create_responses(aci, ctx2, dts)$responses$driver))
-
+  # `.na` and an unknown data type both give no driver
   ctx3 <- ctx
-  ctx3$value[[1]] <- "something we have not defined"
-  expect_true(is.na(process_create_responses(aci, ctx3, dts)$responses$driver))
+  ctx3$value[[1]] <- "survey"
+  expect_true(all(is.na(response_pivot_wider(as_db(aci, ctx3))$driver)))
+
+  ctx4 <- ctx
+  ctx4$value[[1]] <- "something we have not defined"
+  expect_true(all(is.na(response_pivot_wider(as_db(aci, ctx4))$driver)))
 })
 
 
@@ -135,17 +134,17 @@ test_that("`link_vals` is a list of ids, not one id", {
 
   out <- process_create_responses(two, ctx2, dts)
 
-  expect_equal(nrow(out$responses), 2)
-  expect_equal(unique(out$responses$data_type), "ACi")
+  expect_equal(dplyr::n_distinct(out$response_id), 2)
+  expect_equal(unique(out$data_type), "ACi")
 })
 
 
 test_that("a single-point observation is a curve of length one, not a special case", {
   out <- process_create_responses(make_traits(), ctx, dts)
 
-  expect_equal(nrow(out$responses), 1)
-  expect_equal(out$responses$n_points, "1")
-  expect_equal(nrow(out$keys), 1)
+  expect_equal(dplyr::n_distinct(out$response_id), 1)
+  expect_equal(as.character(dplyr::n_distinct(out$point_id)), "1")
+  expect_equal(nrow(out), 1)
 })
 
 
@@ -155,9 +154,8 @@ test_that("curves are separated by method context", {
   two <- dplyr::bind_rows(aci, dplyr::mutate(aci, method_context_id = "02"))
   out <- process_create_responses(two, ctx, dts)
 
-  expect_equal(nrow(out$responses), 2)
-  expect_equal(out$responses$response_id, c("01", "02"))
-  expect_setequal(unique(out$keys$response_id), c("01", "02"))
+  expect_equal(dplyr::n_distinct(out$response_id), 2)
+  expect_setequal(unique(out$response_id), c("01", "02"))
 })
 
 
@@ -165,7 +163,7 @@ test_that("a curve with no recorded point order says so", {
   no_order <- dplyr::mutate(aci, repeat_measurements_id = NA_character_)
   out <- process_create_responses(no_order, ctx, dts)
 
-  expect_equal(out$responses$point_order, "file order")
+  expect_equal(unique(out$point_order), "file order")
 })
 
 
@@ -175,9 +173,9 @@ test_that("`check_curve_pairing` flags only curves where the order matters", {
   as_db <- function(traits) {
     out <- process_create_responses(traits, ctx, dts)
     list(
-      measurements = dplyr::bind_cols(traits, out$keys) %>%
+      measurements = dplyr::bind_cols(traits, out) %>%
         dplyr::rename(variable = "trait_name"),
-      responses = out$responses
+      data_types = dts
     )
   }
 
@@ -211,12 +209,11 @@ test_that("`get_data_types` rejects a file without the expected block", {
 })
 
 
-test_that("empty input gives empty tables with the right columns", {
+test_that("empty input gives an empty result with the right columns", {
   out <- process_create_responses(aci[0, ], ctx, dts)
 
-  expect_equal(nrow(out$responses), 0)
-  expect_true(all(c("response_id", "data_type", "driver", "n_points") %in% names(out$responses)))
-  expect_true(all(c("response_id", "point_id") %in% names(out$keys)))
+  expect_equal(nrow(out), 0)
+  expect_named(out, c("response_id", "point_id", "data_type", "point_order"))
 })
 
 
@@ -243,8 +240,8 @@ pivot_db <- function() {
 
   parts <- lapply(list(ge, hyd), function(tr) {
     out <- process_create_responses(tr, ctx2[ctx2$dataset_id == tr$dataset_id[[1]], ], dt2)
-    list(m = dplyr::bind_cols(tr, out$keys) %>% dplyr::rename(variable = "trait_name"),
-         r = out$responses)
+    list(m = dplyr::bind_cols(tr, out) %>% dplyr::rename(variable = "trait_name"),
+         r = out)
   })
 
   list(

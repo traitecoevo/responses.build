@@ -103,6 +103,7 @@ my_kable_styling <- util_kable_styling_html
 # point of a curve. There is no second vocabulary of derived parameters:
 # fitting curves is out of scope for this compilation.
 definitions <- database$definitions
+data_types <- database$data_types %||% list()
 
 data_study <- extract_dataset(database, dataset_id)
 metadata <- read_metadata(file.path("data", dataset_id, "metadata.yml"))
@@ -663,7 +664,28 @@ We have records on `r data_study$measurements$taxon_name %>% unique() %>% length
 ## Overview
 
 ```{r curve_overview, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
-responses <- data_study$responses
+# A response is a group of readings, not a table of its own: its attributes are
+# columns on `measurements`, and `driver` is looked up from `data_types`.
+driver_of <- function(dt) {
+  vapply(dt, function(x) {
+    if (is.na(x) || is.null(data_types[[x]])) return(NA_character_)
+    v <- data_types[[x]][["driver"]]
+    if (is.null(v) || identical(v, ".na") || is.na(v)) return(NA_character_)
+    as.character(v)
+  }, character(1), USE.NAMES = FALSE)
+}
+
+responses <- data_study$measurements %>%
+  group_by(dataset_id, response_id) %>%
+  summarise(
+    data_type = data_type[[1]],
+    point_order = point_order[[1]],
+    taxon_name = taxon_name[[1]],
+    collection_date = collection_date[[1]],
+    n_points = as.character(n_distinct(point_id)),
+    .groups = "drop"
+  ) %>%
+  mutate(driver = driver_of(data_type))
 points <- response_pivot_wider(data_study, with_curves = FALSE)
 value_cols <- setdiff(names(points), c("dataset_id", "response_id", "point_id"))
 

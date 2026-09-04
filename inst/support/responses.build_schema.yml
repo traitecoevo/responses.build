@@ -98,6 +98,13 @@ austraits:
         taxon_name: &taxon_name Scientific name of the taxon on which traits were sampled, without authorship. When possible, this is the currently accepted (botanical) or valid (zoological) scientific name, but might also be a higher taxonomic level.
         response_id: &response_id A unique integer identifier for the response curve this reading belongs to. Readings of the same curve share it; it is the key into the `curves` table.
         point_id: &point_id A unique integer identifier for the point within its curve. The same `point_id` on two variables means the same moment of measurement, which is what lets them be paired.
+        data_type: What kind of measurement this reading is part of - `ACi`, `AQ`, `PV curve`, `survey` and so on. Allowable values and their meanings, including which variable each is measured across, are specified in `data_types`.
+        point_order: >
+          Whether the order of points within the response was recorded (`recorded`) or taken from the
+          order of rows in the source file (`file order`). Pairing one variable with another across a
+          curve - knowing which `A` goes with which `Ci` - depends on a recorded order. Where it is
+          `file order`, the values are all present but their correspondence is an assumption. See
+          `check_response_pairing()`.
         observation_id: &observation_id A unique integral identifier for the observation, where an observation is all measurements made on an individual at a single point in time. It is important for joining traits coming from the same `observation_id`. Within each dataset, observation_id's are unique combinations of `taxon_name`, `population_id`, `individual_id`, and `temporal_context_id`.
         variable: &variable Name of the variable recorded - an instrument reading or measured state, such as `A`, `Ci`, `gsw` or `PSIstem`. Allowable values specified in the table `definitions`.
         value: &value The measured value of a trait, location property or context property.
@@ -122,38 +129,6 @@ austraits:
         method_id: &method_id A unique integer identifier to distinguish between multiple sets of methods used to measure a single trait within the same dataset. The identifier links to specific information in the methods table.
         method_context_id: &method_context_id A unique integer identifier indicating a trait is measured multiple times on the same entity, with different methods used for each entry. This field is only used if a single trait is measured using multiple methods within the same dataset. The identifier links to specific information in the context table.
         original_name: &original_name Name given to taxon in the original data supplied by the authors.
-    responses:
-      description: >
-        A table with one row per response curve. A curve is a set of measurements taken across a driver
-        gradient whose points belong together, and it is what this data model exists to represent. Curves
-        are identified by `dataset_id`, `observation_id` and `method_context_id` - an entity at one point
-        in time, measured under one set of method settings. A single-point observation is a curve with
-        `n_points` of 1 and no driver; that is the common case, not a special case. Cross referencing with
-        `curve_points` is possible using `dataset_id` and `response_id`.
-      type: table
-      elements:
-        dataset_id: *dataset_id
-        response_id: *response_id
-        data_type: &data_type What kind of measurement the curve is - `ACi`, `AQ`, `PV curve`, `survey` and so on. Allowable values and their meanings are specified in the compilation's `config/data_types.yml`.
-        driver: &driver The variable the curve is measured across - `Ci` for an A-Ci curve, `Qin` for an A-Q curve, `PSIstem` for a stem vulnerability curve. `NA` where the data type is a single-point observation, or where the compilation does not define one.
-        driver_outer: &driver_outer For a nested curve, the variable selecting which curve. An `ACi-T` dataset is a set of A-Ci curves, one per cuvette temperature - `Ci` is the driver and `leaf_temperature_setpoint` the outer driver.
-        taxon_name: *taxon_name
-        observation_id: *observation_id
-        individual_id: *individual_id
-        population_id: *population_id
-        collection_date: *collection_date
-        location_id: *location_id
-        treatment_context_id: *treatment_context_id
-        entity_context_id: *entity_context_id
-        temporal_context_id: *temporal_context_id
-        method_context_id: *method_context_id
-        instrument: &instrument The instrument the measurements were made with.
-        n_points: &n_points The number of points the curve holds.
-        point_order: >
-          Whether the order of points within the curve was recorded (`recorded`) or taken from the order
-          of rows in the source file (`file order`). Pairing one variable with another across a curve -
-          knowing which `A` goes with which `Ci` - depends on a recorded order. Where it is `file order`,
-          the values are all present but their correspondence is an assumption. See `check_curve_pairing()`.
     locations:
       description: A table containing observations of location/site characteristics associated with information in `traits`. Cross referencing between the two dataframes is possible using combinations of the variables `dataset_id`, `location_name`.
       type: table
@@ -295,6 +270,12 @@ austraits:
         identifier_value: A sequence of characters that links an observation within a traits.build database to additional information about observed entity in another database.
     sources:
       description: Bibtex entries for all primary and secondary sources in the compilation.
+      type: list
+    data_types:
+      description: >
+        A list describing the kinds of measurement this compilation holds, and for each the variable
+        it is measured across. Read from the compilation's `config/data_types.yml`. `measurements`
+        carries a `data_type` per reading; this is what those values mean.
       type: list
     definitions:
       description: A copy of the definitions for all tables and terms. Information included here was used to process data and generate any documentation for the study.

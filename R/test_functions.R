@@ -429,7 +429,7 @@ test_expect_structure <- function(data, info, schema, definitions, single_datase
   vars_tables <-
     vars_austraits %>%
     subset(., !(. %in% c(
-      "definitions", "schema", "sources", "metadata",
+      "definitions", "data_types", "schema", "sources", "metadata",
       "build_info", "taxonomic_updates", "taxa")))
 
   # Test lists have the right objects

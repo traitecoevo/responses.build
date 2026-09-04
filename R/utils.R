@@ -481,7 +481,7 @@ util_custom_code_env <- function() {
 #' @noRd
 util_pipeline_columns <- function(schema) {
   cols <- names(schema[["austraits"]][["elements"]][["measurements"]][["elements"]])
-  cols <- setdiff(cols, c("response_id", "point_id"))
+  cols <- setdiff(cols, c("response_id", "point_id", "data_type", "point_order"))
   replace(cols, cols == "variable", "trait_name")
 }
 

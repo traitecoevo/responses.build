@@ -65,6 +65,11 @@ bind_databases <- function(..., databases = list(...), rights = NULL,
   definitions <- definitions[!duplicated(names(definitions))]
   definitions <- definitions[sort(names(definitions))]
 
+  # Compilation-level vocabulary, same shape as `definitions`
+  data_types <- databases %>% lapply("[[", "data_types") %>% purrr::reduce(c)
+  data_types <- data_types[!duplicated(names(data_types))]
+  data_types <- data_types[sort(names(data_types))]
+
   taxonomic_updates <-
     combine("taxonomic_updates") %>%
     dplyr::distinct() %>%
@@ -88,7 +93,6 @@ bind_databases <- function(..., databases = list(...), rights = NULL,
     list(
       measurements = arrange_if("measurements", "dataset_id", "response_id",
                                 "point_id", "variable"),
-      responses = arrange_if("responses", "dataset_id", "response_id"),
       locations = arrange_if("locations", "dataset_id", "location_id"),
       treatments = arrange_if("treatments", "dataset_id", "treatment_context_id", "factor"),
       # A total order: `dataset_id` and `category` alone leave rows within a
@@ -103,6 +107,7 @@ bind_databases <- function(..., databases = list(...), rights = NULL,
       identifiers = combine("identifiers"),
       contributors = contributors,
       sources = sources,
+      data_types = data_types,
       definitions = definitions,
       schema = databases[[1]][["schema"]],
       metadata = metadata,

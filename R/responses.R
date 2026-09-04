@@ -91,25 +91,15 @@ get_data_types <- function(path = NULL) {
 #'   `instrument` off the method context
 #' @param data_types Data type definitions, as returned by [get_data_types()]
 #'
-#' @return A list with `responses`, and `keys` -- one row per reading, giving its
-#'   `response_id` and `point_id`
+#' @return A tibble with one row per reading: `response_id`, `point_id`,
+#'   `data_type`, `point_order`
 #' @importFrom rlang .data
 #' @noRd
 process_create_responses <- function(traits, contexts, data_types = list()) {
 
-  empty <- list(
-    responses = tibble::tibble(
-      dataset_id = character(0), response_id = character(0),
-      data_type = character(0), driver = character(0),
-      driver_outer = character(0), taxon_name = character(0),
-      observation_id = character(0), individual_id = character(0),
-      population_id = character(0), collection_date = character(0),
-      location_id = character(0), treatment_context_id = character(0),
-      entity_context_id = character(0), temporal_context_id = character(0),
-      method_context_id = character(0), instrument = character(0),
-      n_points = character(0), point_order = character(0)
-    ),
-    keys = tibble::tibble(response_id = character(0), point_id = character(0))
+  empty <- tibble::tibble(
+    response_id = character(0), point_id = character(0),
+    data_type = character(0), point_order = character(0)
   )
 
   if (is.null(traits) || nrow(traits) == 0) return(empty)
@@ -297,35 +287,25 @@ process_create_responses <- function(traits, contexts, data_types = list()) {
     }
   }
 
+  # `point_order` is a property of the whole response, not of one reading: if
+  # any reading in it carries a recorded order, the response has one.
   order_of <-
     points %>%
     dplyr::group_by(.data$dataset_id, .data$response_id) %>%
     dplyr::summarise(
-      point_order = if (any(.data$point_order == "recorded")) "recorded" else "file order",
+      .order = if (any(.data$point_order == "recorded")) "recorded" else "file order",
       .groups = "drop"
     )
 
-  n <- points %>%
-    dplyr::distinct(.data$dataset_id, .data$response_id, .data$point_id) %>%
-    dplyr::count(.data$dataset_id, .data$response_id, name = "n_points")
-
-  responses <-
-    responses %>%
-    dplyr::left_join(n, by = c("dataset_id", "response_id")) %>%
+  points %>%
+    dplyr::select(-dplyr::all_of("point_order")) %>%
     dplyr::left_join(order_of, by = c("dataset_id", "response_id")) %>%
-    dplyr::mutate(n_points = as.character(dplyr::coalesce(.data$n_points, 0L))) %>%
-    dplyr::select(dplyr::all_of(c(
-      "dataset_id", "response_id", "data_type", "driver", "driver_outer",
-      "taxon_name", "observation_id", "individual_id", "population_id",
-      "collection_date", "location_id", "treatment_context_id",
-      "entity_context_id", "temporal_context_id", "method_context_id",
-      "instrument", "n_points", "point_order"
-    )))
-
-  list(
-    responses = responses,
-    keys = points %>% dplyr::select(dplyr::all_of(c("response_id", "point_id")))
-  )
+    dplyr::transmute(
+      response_id = .data$response_id,
+      point_id = .data$point_id,
+      data_type = .data$.data_type,
+      point_order = .data$.order
+    )
 }
 
 
@@ -352,15 +332,23 @@ process_create_responses <- function(traits, contexts, data_types = list()) {
 #' @export
 check_curve_pairing <- function(database) {
 
-  responses <- database[["responses"]]
   points <- database[["measurements"]]
 
-  if (is.null(responses) || is.null(points) || nrow(responses) == 0) {
+  if (is.null(points) || nrow(points) == 0) {
     return(tibble::tibble(
       dataset_id = character(0), response_id = character(0),
       n_points = integer(0), n_variables = integer(0)
     ))
   }
+
+  responses <-
+    points %>%
+    dplyr::group_by(.data$dataset_id, .data$response_id) %>%
+    dplyr::summarise(
+      point_order = .data$point_order[[1]],
+      n_points = dplyr::n_distinct(.data$point_id),
+      .groups = "drop"
+    )
 
   n_vars <-
     points %>%
@@ -372,7 +360,7 @@ check_curve_pairing <- function(database) {
     dplyr::left_join(n_vars, by = c("dataset_id", "response_id")) %>%
     dplyr::filter(
       .data$point_order == "file order",
-      as.integer(.data$n_points) > 1,
+      .data$n_points > 1,
       .data$n_variables > 1
     ) %>%
     dplyr::select(dplyr::all_of(c(
@@ -492,27 +480,15 @@ response_pivot_wider <- function(database, data_type = NULL, vars = NULL,
   }
 
   if (!is.null(data_type)) {
-    responses <- database[["responses"]]
-    if (is.null(responses)) {
-      stop("`database` has no `responses` table, so `data_type` cannot be used.",
-           call. = FALSE)
-    }
-    known <- unique(stats::na.omit(responses$data_type))
+    known <- unique(stats::na.omit(measurements$data_type))
     unknown <- setdiff(data_type, known)
     if (length(unknown) > 0) {
       stop("No such data_type: ", paste(unknown, collapse = ", "),
            ". This database has: ", paste(sort(known), collapse = ", "),
            call. = FALSE)
     }
-    # `response_id` is generated per dataset, so "001" exists in every one of
-    # them. Filtering with `%in%` on it alone pulls in whatever happens to
-    # share the number elsewhere -- which is how a request for A-Ci curves came
-    # back carrying `PLCstem`. The key is (dataset_id, response_id).
-    keep <- responses %>%
-      dplyr::filter(.data$data_type %in% .env$data_type) %>%
-      dplyr::select(dplyr::all_of(c("dataset_id", "response_id")))
-
-    measurements <- measurements %>% dplyr::semi_join(keep, by = c("dataset_id", "response_id"))
+    measurements <- measurements %>%
+      dplyr::filter(.data$data_type %in% .env$data_type)
   }
 
   if (!is.null(vars)) {
@@ -568,16 +544,33 @@ response_pivot_wider <- function(database, data_type = NULL, vars = NULL,
     }
   }
 
-  if (!with_curves || is.null(database[["responses"]])) return(out)
+  if (!with_curves) return(out)
+
+  # `driver` is a property of the `data_type`, so it is looked up rather than
+  # stored on every reading.
+  dts <- database[["data_types"]]
+  driver_of <- function(dt) {
+    vapply(dt, function(x) {
+      if (is.na(x) || is.null(dts[[x]])) return(NA_character_)
+      v <- dts[[x]][["driver"]]
+      if (is.null(v) || identical(v, ".na") || is.na(v)) return(NA_character_)
+      as.character(v)
+    }, character(1), USE.NAMES = FALSE)
+  }
+
+  attrs <-
+    measurements %>%
+    dplyr::distinct(.data$dataset_id, .data$response_id, .data$data_type,
+                    .data$taxon_name)
+
+  out <- out %>%
+    dplyr::left_join(attrs, by = c("dataset_id", "response_id"))
+
+  if (!is.null(dts) && length(dts) > 0) {
+    out$driver <- driver_of(out$data_type)
+  }
 
   out %>%
-    dplyr::left_join(
-      database[["responses"]] %>%
-        dplyr::select(dplyr::all_of(c(
-          "dataset_id", "response_id", "data_type", "driver", "taxon_name"
-        ))),
-      by = c("dataset_id", "response_id")
-    ) %>%
-    dplyr::relocate(dplyr::all_of(c("data_type", "driver", "taxon_name")),
+    dplyr::relocate(dplyr::any_of(c("data_type", "driver", "taxon_name")),
                     .after = "point_id")
 }

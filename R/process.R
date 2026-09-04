@@ -411,15 +411,16 @@ dataset_process <- function(filename_data_raw,
     dplyr::filter(is.na(.data$error)) %>%
     dplyr::select(-dplyr::all_of(c("error", "unit_in")))
 
-  curve_tables <- process_create_responses(
+  response_keys <- process_create_responses(
     traits_ok,
     context_ids$contexts,
     data_types
   )
 
-  measurements <- dplyr::bind_cols(traits_ok, curve_tables$keys) %>%
+  measurements <- dplyr::bind_cols(traits_ok, response_keys) %>%
     dplyr::rename(dplyr::all_of(c(variable = "trait_name"))) %>%
-    dplyr::relocate(dplyr::all_of(c("response_id", "point_id")), .before = "observation_id")
+    dplyr::relocate(dplyr::all_of(c("response_id", "point_id", "data_type",
+                                    "point_order")), .before = "observation_id")
 
   # What each treatment actually did, as numbers. Additive: the treatment
   # context keeps its id and its link to the measurements, and this says what
@@ -432,7 +433,6 @@ dataset_process <- function(filename_data_raw,
   ret <-
     list(
       measurements = measurements,
-      responses = curve_tables$responses,
       locations = locations,
       treatments = treatments,
       contexts = context_ids$contexts %>% dplyr::select(-dplyr::any_of(c("var_in"))),
@@ -451,6 +451,7 @@ dataset_process <- function(filename_data_raw,
       contributors = contributors,
       identifiers = identifiers_tmp,
       sources = sources,
+      data_types = data_types,
       definitions = definitions,
       schema = schema,
       metadata = metadata,
