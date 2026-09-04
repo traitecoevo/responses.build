@@ -13,7 +13,7 @@ dataset_process(
   filter_missing_values = TRUE,
   data_types = get_data_types(),
   vocabularies = get_vocabularies(),
-  treatment_factors = get_treatment_factors()
+  growth_conditions_vocab = get_growth_conditions()
 )
 }
 \arguments{
@@ -38,8 +38,9 @@ curves are still identified but carry no \code{driver}.}
 descriptors into their constant column and context entry. Defaults to
 \code{config/vocabularies.yml} if present.}
 
-\item{treatment_factors}{Treatment factor definitions, used to build the
-\code{treatments} table. Defaults to \code{config/treatment_factors.yml} if present.}
+\item{growth_conditions_vocab}{Growth-condition definitions, used to build
+the \code{growth_conditions} table. Defaults to \code{config/growth_conditions.yml}
+if present.}
 }
 \value{
 List, database object

@@ -94,7 +94,8 @@ bind_databases <- function(..., databases = list(...), rights = NULL,
       measurements = arrange_if("measurements", "dataset_id", "response_id",
                                 "point_id", "variable"),
       locations = arrange_if("locations", "dataset_id", "location_id"),
-      treatments = arrange_if("treatments", "dataset_id", "treatment_context_id", "factor"),
+      growth_conditions = arrange_if("growth_conditions", "dataset_id",
+                                     "treatment_context_id", "condition"),
       # A total order: `dataset_id` and `category` alone leave rows within a
       # category free to move, so the published row order wobbled whenever a
       # context was added or removed.

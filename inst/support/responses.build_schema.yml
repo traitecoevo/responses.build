@@ -138,25 +138,27 @@ austraits:
         location_name: &location_name The location name.
         location_property: The location characteristic being recorded. The name should include units of measurement, e.g. `MAT (C)`. Ideally we have at least the following variables for each location, longitude_deg, latitude_deg, `description`.
         value: The measured value of a location property.
-    treatments:
+    growth_conditions:
       description: >
-        A table saying what each experimental treatment actually did, as numbers. A treatment was
-        otherwise recorded only as a verbatim level and a prose description - `elevated`, "plants grown
-        in 3 degrees C above ambient temperatures" - which cannot be compared across studies, since
-        `elevated` means +3 C in one and +4 in another. This is additive: the `treatment_context` keeps
-        its id and its link to the measurements and answers "which rows had this treatment", while this
-        table answers "what was the treatment". A level whose study stated no quantity appears with a
-        `label` and no `factor`; that absence is the record of an unstated quantity, not a gap to fill.
-        Cross referencing with `traits` is possible using `dataset_id` and `treatment_context_id`.
+        A table saying what conditions the plants were grown under, as numbers rather than as a
+        description. A condition is recorded whether or not the study manipulated it: a study that
+        grew everything at 26 C says so once for the whole dataset, and one that grew plants at 26
+        and 32 says so against each treatment level. Recording only what was manipulated - which the
+        `treatments` table this replaces did - left every constant-condition study saying nothing
+        about the conditions its plants grew in. Rows with `manipulated` true carry a
+        `treatment_context_id` and link to the readings that had that treatment; rows with it false
+        apply to the whole dataset. A treatment level whose study stated no quantity appears with a
+        `label` and no `condition`; that absence is the record of an unstated quantity.
       type: table
       elements:
         dataset_id: *dataset_id
         treatment_context_id: *treatment_context_id
-        context_property: The context property naming the treatment, e.g. `growth_CO2_treatment`.
-        label: The treatment level as the study reported it, e.g. `elevated`. Kept as provenance for the factors below.
-        factor: The quantity describing what the treatment did, e.g. `growth_co2_offset`. Allowable values are defined in the compilation's `config/treatment_factors.yml`. `NA` where the study stated no quantity.
-        value: The value of the factor.
-        unit: Units of the factor, taken from its definition rather than from the dataset.
+        context_property: The context property naming the treatment, e.g. `growth_CO2_treatment`. `NA` where the condition applies to the whole dataset.
+        label: The treatment level as the study reported it, e.g. `elevated`. Kept as provenance for the numbers below. `NA` where the condition applies to the whole dataset.
+        condition: The quantity, e.g. `growth_co2_offset` or `growth_air_temperature_day`. Allowable values are defined in the compilation's `config/growth_conditions.yml`. `NA` where the study stated a treatment level but no quantity.
+        value: The value of the condition.
+        unit: Units of the condition, taken from its definition rather than from the dataset.
+        manipulated: Whether the study manipulated this condition, or merely reported it.
     contexts:
       description: A table containing observations of contextual characteristics associated with information in `traits`. Cross referencing between the two dataframes is possible using combinations of the variables `dataset_id`, `link_id`, and `link_vals`.
       type: table

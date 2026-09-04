@@ -77,8 +77,9 @@ dataset_configure <- function(
 #' @param vocabularies Descriptor vocabularies, used to expand dataset-level
 #' descriptors into their constant column and context entry. Defaults to
 #' `config/vocabularies.yml` if present.
-#' @param treatment_factors Treatment factor definitions, used to build the
-#' `treatments` table. Defaults to `config/treatment_factors.yml` if present.
+#' @param growth_conditions_vocab Growth-condition definitions, used to build
+#' the `growth_conditions` table. Defaults to `config/growth_conditions.yml`
+#' if present.
 #'
 #' @return List, database object
 #' @export
@@ -103,7 +104,7 @@ dataset_process <- function(filename_data_raw,
                             filter_missing_values = TRUE,
                             data_types = get_data_types(),
                             vocabularies = get_vocabularies(),
-                            treatment_factors = get_treatment_factors()) {
+                            growth_conditions_vocab = get_growth_conditions()) {
 
   dataset_id <- config_for_dataset$dataset_id
   metadata <- config_for_dataset$metadata
@@ -422,11 +423,11 @@ dataset_process <- function(filename_data_raw,
     dplyr::relocate(dplyr::all_of(c("response_id", "point_id", "data_type",
                                     "point_order")), .before = "observation_id")
 
-  # What each treatment actually did, as numbers. Additive: the treatment
-  # context keeps its id and its link to the measurements, and this says what
-  # the treatment was rather than which rows had it.
-  treatments <- process_create_treatments(
-    dataset_metadata, context_ids$contexts, treatment_factors, dataset_id
+  # The conditions the plants were grown under, as numbers -- whether or not
+  # the study manipulated them. Additive: a treatment context keeps its id and
+  # its link to the readings, and this says what the conditions were.
+  growth_conditions <- process_create_growth_conditions(
+    dataset_metadata, context_ids$contexts, growth_conditions_vocab, dataset_id
   )
 
   # Combine for final output
@@ -434,7 +435,7 @@ dataset_process <- function(filename_data_raw,
     list(
       measurements = measurements,
       locations = locations,
-      treatments = treatments,
+      growth_conditions = growth_conditions,
       contexts = context_ids$contexts %>% dplyr::select(-dplyr::any_of(c("var_in"))),
       methods = methods %>%
         dplyr::rename(dplyr::all_of(c(variable = "trait_name"))),
