@@ -10,17 +10,19 @@ the `contexts` block instead. It exists to serve [AusFizz](https://github.com/tr
 **Read [`PLAN.md`](PLAN.md) before changing anything.** It records the fork point, the seven stages
 that implement the response-curve model, and the invariants below.
 
-### Terminology — three levels, and they are not interchangeable
+### Terminology — two levels, and they are not interchangeable
 
 ```
-variables      raw per-point readings              A, Ci, gsw, Tleaf, Qin, PSIstem, f0
-curves         the curve as an addressable object
-traits         derived parameters, one per entity  Amax, Vcmax25, Jmax25, P50, TLP
+variables    raw per-point readings           A, Ci, gsw, Tleaf, Qin, PSIstem, f0
+responses    one entity measured one way; a curve is one with a driver and >1 point
 ```
 
-The upstream data model called the first row "traits", which is why the AusFizz `traits` table needs
-584,338 rows to hold what `curve_points` holds in 50,506. `traits` is reserved here for the third row
-— the parameters fitted from curves, which are what eventually reaches AusTraits.
+The upstream data model called the readings "traits", which is why AusFizz needed 584,338 rows to
+hold 50,506 measurements. **There is no `traits` table here**: derived parameters — `Amax`,
+`Vcmax25`, `P50` — are out of scope for this compilation, and fitting them is downstream work.
+
+`responses` rather than `curves` because 88% of them have a single point. A curve is a response with
+a driver and more than one point; `data_type` and `driver` say which.
 
 **Naming rule, everywhere:** identifiers are `snake_case`, carry no units, spaces or brackets, and
 units live in a `unit` field beside the value.
@@ -32,21 +34,36 @@ the rest of the build understands (`R/measurements.R`). Order matters inside tha
 instrument profile → `column_suffix` → `use` → `variables_extra`. The first two describe the
 *profile*; extras are written out in full and must come last, or `use` silently filters them away.
 
-### The curve tables
+### Growth conditions are recorded whether or not they were manipulated
 
-`curves` and `curve_points` are the point of this package. A curve is identified by
-`(dataset_id, observation_id, method_context_id)`; its points are ordered by `repeat_measurements_id`.
+`growth_conditions` replaced a `treatments` table that held only what an experiment *changed*. The
+distinction matters: a row with `manipulated = TRUE` names a treatment level and carries its
+`treatment_context_id`; a row with `FALSE` applies to the whole dataset. Do not "simplify" this back
+to treatments-only — the point is that a study growing everything at one temperature can say so.
 
-Two things that look like tidying up and are not:
+Populating the unmanipulated ones is source work, not code. Searching all 31 AusFizz datasets for a
+plainly-stated growth temperature, CO2, irradiance or pot volume turns up **two** candidates, one of
+which is misleading. The numbers are in the papers.
 
-- **`method_id` is deliberately absent from `curves`.** It belongs to a (curve, variable) pair, not to
-  the curve. Adding it to the key splits curves that should stay whole — measured: 75 of them, and in
-  `Ghannoum_2010` it fragments a complete eight-variable curve because `Tleaf` alone was measured twice.
+### Responses are a grouping, not a table
+
+`measurements` carries `response_id`, `point_id`, `data_type` and `point_order`. There is **no
+`responses` table**: it existed, and review found 12 of its 18 columns were already on the readings.
+`driver` comes from `data_types`, `instrument` is a method context, `n_points` is a count.
+
+Three things that look like tidying up and are not:
+
+- **`method_id` is not part of the response key.** It belongs to a (response, variable) pair. Adding
+  it splits responses that should stay whole — measured: 75 of them, and in `Ghannoum_2010` it
+  fragments a complete eight-variable curve because `Tleaf` alone was measured twice.
 - **`link_vals` in the contexts table is a comma-separated list of ids**, not one id. Any join against
   it must split first, or it silently matches nothing.
+- **A data type may declare `spans_time`**, and then its responses group across `collection_date`.
+  Without it `gs_drydown` came out as 1,378 responses of one point each, where it is 262 plants
+  measured a median of 4 times.
 
-`n_points` is character, like every other column of every other table here, so `write_plaintext()` and
-`read_csv_char()` round-trip.
+Every column of every table is character, so `write_plaintext()` and `read_csv_char()` round-trip.
+That includes `n_points` and `manipulated`.
 
 ### The fork is a real fork
 
