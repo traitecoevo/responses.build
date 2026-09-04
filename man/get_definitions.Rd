@@ -4,11 +4,14 @@
 \alias{get_definitions}
 \title{Load the vocabulary of variables a compilation measures}
 \usage{
-get_definitions(path = NULL)
+get_definitions(path = NULL, dir = "config")
 }
 \arguments{
-\item{path}{Path to the variable definitions. By default \code{config/variables.yml},
-falling back to \code{config/traits.yml} if that does not exist.}
+\item{path}{Path to the variable definitions. By default resolved inside
+\code{dir}: \code{variables.yml}, falling back to \code{traits.yml} if that does not exist.}
+
+\item{dir}{Directory holding the compilation's config, consulted when \code{path}
+is \code{NULL}. Defaults to \code{config}.}
 }
 \value{
 A list of variable definitions

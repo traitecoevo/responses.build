@@ -42,8 +42,10 @@ get_schema <-
 #' from there, with a message. That fallback exists so a repository can move at
 #' its own pace; it is not a second supported layout.
 #'
-#' @param path Path to the variable definitions. By default `config/variables.yml`,
-#'   falling back to `config/traits.yml` if that does not exist.
+#' @param path Path to the variable definitions. By default resolved inside
+#'   `dir`: `variables.yml`, falling back to `traits.yml` if that does not exist.
+#' @param dir Directory holding the compilation's config, consulted when `path`
+#'   is `NULL`. Defaults to `config`.
 #'
 #' @return A list of variable definitions
 #' @export
@@ -53,23 +55,23 @@ get_schema <-
 #' definitions <- get_definitions()
 #' }
 #' }
-get_definitions <- function(path = NULL) {
+get_definitions <- function(path = NULL, dir = "config") {
 
   if (is.null(path)) {
-    if (file.exists("config/variables.yml")) {
-      path <- "config/variables.yml"
-    } else if (file.exists("config/traits.yml")) {
+    if (file.exists(file.path(dir, "variables.yml"))) {
+      path <- file.path(dir, "variables.yml")
+    } else if (file.exists(file.path(dir, "traits.yml"))) {
       message(
-        "Reading variable definitions from `config/traits.yml`.\n",
+        "Reading variable definitions from `", dir, "/traits.yml`.\n",
         "These are variables -- per-point instrument readings -- not traits. ",
-        "Rename the file to `config/variables.yml` and its top-level key to ",
-        "`variables`; `config/traits.yml` is for derived parameters."
+        "Rename the file to `variables.yml` and its top-level key to ",
+        "`variables`; `traits.yml` is for derived parameters."
       )
-      path <- "config/traits.yml"
+      path <- file.path(dir, "traits.yml")
     } else {
       stop(
-        "No variable definitions found. Expected `config/variables.yml` ",
-        "(or `config/traits.yml`) relative to ", getwd(),
+        "No variable definitions found. Expected `variables.yml` ",
+        "(or `traits.yml`) in ", normalizePath(dir, mustWork = FALSE),
         call. = FALSE
       )
     }
