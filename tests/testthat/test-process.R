@@ -219,10 +219,15 @@ test_that("`process_format_contexts` keeps a time column's clock values", {
   # because `process_create_context_ids()` reads the data column with
   # `as.character()` and looks the result up by `find`, and the whole context
   # was dropped from the build without a warning.
-  data <- tibble(
-    Time = hms::as_hms(c("11:30:00", "10:00:00", "11:30:00", "17:40:00")),
-    treatment = c("wet", "wet", "dry", "dry")
+  # Built with `read_csv()` rather than `hms::as_hms()`, both so the column
+  # arises the way it does in a build -- from readr's type guessing on a
+  # `data.csv` -- and because `hms` is not a declared dependency.
+  data <- readr::read_csv(
+    I("Time,treatment\n11:30:00,wet\n10:00:00,wet\n11:30:00,dry\n17:40:00,dry\n"),
+    col_types = readr::cols(), progress = FALSE
   )
+
+  expect_s3_class(data$Time, "hms")
 
   contexts <- process_format_contexts(
     list(
