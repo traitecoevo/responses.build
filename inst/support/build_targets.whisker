@@ -44,7 +44,8 @@ dataset_targets <- tarchetypes::tar_map(
       data_file, config, schema, resource_metadata, unit_conversions,
       data_types = data_types,
       vocabularies = vocabularies,
-      growth_conditions_vocab = growth_conditions_vocab
+      growth_conditions_vocab = growth_conditions_vocab,
+      provenance_properties = provenance_properties
     )
   ),
   tar_target(
@@ -70,6 +71,7 @@ list(
   tar_target(data_types, get_data_types()),
   tar_target(vocabularies, get_vocabularies()),
   tar_target(growth_conditions_vocab, get_growth_conditions()),
+  tar_target(provenance_properties, get_provenance_properties()),
   tar_target(instruments, get_instruments()),
 
   tar_target(unit_conversions_file, "config/unit_conversions.csv", format = "file"),

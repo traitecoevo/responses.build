@@ -80,6 +80,8 @@ dataset_configure <- function(
 #' @param growth_conditions_vocab Growth-condition definitions, used to build
 #' the `growth_conditions` table. Defaults to `config/growth_conditions.yml`
 #' if present.
+#' @param provenance_properties Provenance definitions, used to build the
+#' `provenance` table. Defaults to `config/provenance.yml` if present.
 #'
 #' @return List, database object
 #' @export
@@ -104,7 +106,8 @@ dataset_process <- function(filename_data_raw,
                             filter_missing_values = TRUE,
                             data_types = get_data_types(),
                             vocabularies = get_vocabularies(),
-                            growth_conditions_vocab = get_growth_conditions()) {
+                            growth_conditions_vocab = get_growth_conditions(),
+                            provenance_properties = get_provenance_properties()) {
 
   dataset_id <- config_for_dataset$dataset_id
   metadata <- config_for_dataset$metadata
@@ -430,12 +433,19 @@ dataset_process <- function(filename_data_raw,
     dataset_metadata, context_ids$contexts, growth_conditions_vocab, dataset_id
   )
 
+  # Where the plant material came from. A property of the seed origin, not of
+  # the growing environment, which is why it is not a growth condition.
+  provenance <- process_create_provenance(
+    dataset_metadata, context_ids$contexts, provenance_properties, dataset_id
+  )
+
   # Combine for final output
   ret <-
     list(
       measurements = measurements,
       locations = locations,
       growth_conditions = growth_conditions,
+      provenance = provenance,
       contexts = context_ids$contexts %>% dplyr::select(-dplyr::any_of(c("var_in"))),
       methods = methods %>%
         dplyr::rename(dplyr::all_of(c(variable = "trait_name"))),

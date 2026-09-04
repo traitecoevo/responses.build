@@ -159,6 +159,24 @@ austraits:
         value: The value of the condition.
         unit: Units of the condition, taken from its definition rather than from the dataset.
         manipulated: Whether the study manipulated this condition, or merely reported it.
+    provenance:
+      description: >
+        A table saying where the plant material came from, as data rather than as a sentence. A
+        provenance is a property of the seed origin, not of the growing environment, which is why it
+        is not a growth condition - it was previously split between a context and two quantities filed
+        under treatments. The context it hangs off may be of any category: whether a provenance is a
+        treatment depends on whether the study chose provenances deliberately, which is a fact about
+        the experiment rather than about the provenance. Cross referencing with `measurements` is
+        possible using `dataset_id` and whichever context id column `context_property` belongs to.
+      type: table
+      elements:
+        dataset_id: *dataset_id
+        context_id: The id of the context level this provenance describes, in whichever context category that property belongs to.
+        context_property: The context property naming the provenance, e.g. `seed_provenance`.
+        label: The provenance as the study reported it, e.g. `cool_wet`. Kept as provenance for the numbers below.
+        property: What is recorded about the origin, e.g. `provenance_latitude`. Allowable values are defined in the compilation's `config/provenance.yml`.
+        value: The value of the property.
+        unit: Units of the property, taken from its definition rather than from the dataset.
     contexts:
       description: A table containing observations of contextual characteristics associated with information in `traits`. Cross referencing between the two dataframes is possible using combinations of the variables `dataset_id`, `link_id`, and `link_vals`.
       type: table

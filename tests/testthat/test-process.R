@@ -28,7 +28,7 @@ test_that("`dataset_process` is working", {
   # `traits.build` until the austraits linkage was severed; pinned so a rename
   # cannot happen by accident.
   expect_equal(class(x), c("list", "responses.build"))
-  expect_length(x, 16)   # + curves, treatments; curve_points is a view, not a table
+  expect_length(x, 17)   # + growth_conditions, provenance, data_types
   expect_named(x, austraits_names)
   expect_equal(nrow(x$excluded_data), 0)
   # Test to see if `filter_missing_values` argument works

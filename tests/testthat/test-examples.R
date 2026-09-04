@@ -23,7 +23,7 @@ examples_dir <- "examples"
 dataset_ids <- sprintf("Test_2023_%d", 1:9)
 
 # Every table in the database structure, not a hand-maintained subset
-tables <- c("measurements", "growth_conditions", "locations", "contexts", "methods", "excluded_data",
+tables <- c("measurements", "growth_conditions", "provenance", "locations", "contexts", "methods", "excluded_data",
             "taxonomic_updates", "taxa", "contributors", "identifiers")
 
 

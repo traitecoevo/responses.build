@@ -13,7 +13,8 @@ dataset_process(
   filter_missing_values = TRUE,
   data_types = get_data_types(),
   vocabularies = get_vocabularies(),
-  growth_conditions_vocab = get_growth_conditions()
+  growth_conditions_vocab = get_growth_conditions(),
+  provenance_properties = get_provenance_properties()
 )
 }
 \arguments{
@@ -41,6 +42,9 @@ descriptors into their constant column and context entry. Defaults to
 \item{growth_conditions_vocab}{Growth-condition definitions, used to build
 the \code{growth_conditions} table. Defaults to \code{config/growth_conditions.yml}
 if present.}
+
+\item{provenance_properties}{Provenance definitions, used to build the
+\code{provenance} table. Defaults to \code{config/provenance.yml} if present.}
 }
 \value{
 List, database object

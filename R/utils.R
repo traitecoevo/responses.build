@@ -274,7 +274,8 @@ write_metadata <- function(data, path, style_code = FALSE) {
   # and are dropped, so listing both is safe.
   sections <- c("source", "contributors", "dataset", "descriptors",
                 "identifiers", "locations",
-                "contexts", "treatments", "protocols", "traits",
+                "contexts", "growth_conditions", "provenance", "protocols",
+                "traits",
                 "substitutions", "taxonomic_updates", "exclude_observations",
                 "questions")
 
