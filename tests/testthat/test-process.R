@@ -211,6 +211,70 @@ test_that("the build pipeline runs end to end", {
 })
 
 
+test_that("`process_format_contexts` keeps a time column's clock values", {
+  # A context whose values are derived from the data used to lose them whenever
+  # the column read as `hms`. `ifelse()` drops the class of its arguments, so
+  # filling `find` from `value` demoted it to the underlying seconds: `find`
+  # became "41400" where `value` stayed "11:30:00". Nothing matched afterwards,
+  # because `process_create_context_ids()` reads the data column with
+  # `as.character()` and looks the result up by `find`, and the whole context
+  # was dropped from the build without a warning.
+  # Built with `read_csv()` rather than `hms::as_hms()`, both so the column
+  # arises the way it does in a build -- from readr's type guessing on a
+  # `data.csv` -- and because `hms` is not a declared dependency.
+  data <- readr::read_csv(
+    I("Time,treatment\n11:30:00,wet\n10:00:00,wet\n11:30:00,dry\n17:40:00,dry\n"),
+    col_types = readr::cols(), progress = FALSE
+  )
+
+  expect_s3_class(data$Time, "hms")
+
+  contexts <- process_format_contexts(
+    list(
+      list(
+        context_property = "time_of_day_approx",
+        category = "temporal_context",
+        var_in = "Time"
+      )
+    ),
+    "Test_hms", data
+  )
+
+  expect_setequal(contexts$value, c("11:30:00", "10:00:00", "17:40:00"))
+  expect_equal(contexts$find, contexts$value)
+
+  # And the values reach the build, rather than looking up to nothing
+  linked <- process_create_context_ids(data, contexts)
+
+  expect_false(any(is.na(linked$contexts$link_id)))
+  expect_equal(dplyr::n_distinct(linked$ids$temporal_context_id), 3)
+})
+
+
+test_that("`process_format_contexts` still fills an absent `find` from `value`", {
+  # The `find` column is optional per value: a context that only ever names a
+  # `value` relies on it being copied across, and the fix above must not stop
+  # that. Here one value declares a `find` and the other does not.
+  contexts <- process_format_contexts(
+    list(
+      list(
+        context_property = "growth_water_treatment",
+        category = "treatment_context",
+        var_in = "opt",
+        values = list(
+          list(find = "drought", value = "water deficit"),
+          list(value = "well-watered")
+        )
+      )
+    ),
+    "Test_find", tibble(opt = c("drought", "well-watered"))
+  )
+
+  expect_equal(contexts$find, c("drought", "well-watered"))
+  expect_equal(contexts$value, c("water deficit", "well-watered"))
+})
+
+
 # The below functions are not working
 #test_that("process_flag_unsupported_traits is working", {
 #  process_flag_unsupported_traits(data, definitions)

@@ -878,16 +878,29 @@ process_format_contexts <- function(my_list, dataset_id, traits) {
         dplyr::mutate(find = .data$value)
     }
 
+    # Convert to character *before* filling `find` from `value`, not after.
+    #
+    # `ifelse()` drops the class of its arguments and returns the underlying
+    # vector, so filling first demoted a time column to its seconds: where the
+    # values are derived from the data above and that column reads as `hms`,
+    # `find` became "41400" while `value` stayed "11:30:00". Nothing then
+    # matched, because `process_create_context_ids()` reads the data column
+    # with `as.character()` and looks the result up by `find`. The context was
+    # dropped from the build in silence -- `Mitchell_2009` lost all 16 of its
+    # `time_of_day_approx` values that way, and its `temporal_context_id`
+    # collapsed to the four replicate levels.
+    out <- out %>%
+      dplyr::mutate(
+        dplyr::across(dplyr::any_of(c("find", "value")), as.character)
+      )
+
     if ("find" %in% names(out)) {
-      out <- out %>%
-        dplyr::mutate(find = ifelse(is.na(.data$find), .data$value, .data$find))
+      out %>%
+        dplyr::mutate(find = dplyr::coalesce(.data$find, .data$value))
     } else {
-      out <- out %>%
+      out %>%
         dplyr::mutate(find = .data$value)
     }
-    # Ensure character types
-    out %>%
-      dplyr::mutate(dplyr::across(dplyr::all_of(c("find", "value")), as.character))
   }
 
   if (!is.na(my_list[1])) {

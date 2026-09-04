@@ -288,6 +288,20 @@ AusFizz has ~100 such call sites. **Moving those five to `Imports` breaks them**
 
 Upstream cannot fix this cheaply: `austraits.build` (970 call sites) and `ausinvertraits.build` (170) are bound by the same contract. **This fork serves only AusFizz**, and Stage 3 removes most of its call sites — so the blocker does not apply here. Order matters: explicit eval environment first, rebuild AusFizz and diff, *then* `Depends` → `Imports`, and diff again.
 
+## Invariant: a context value is converted to character before anything fills it
+
+`process_format_contexts()` builds the `find`/`value` pair that `process_create_context_ids()` looks each data row up by. `find` is optional per value and gets filled from `value` where absent — and that fill must run on character, never on the column's own type.
+
+`ifelse()` returns the underlying vector, so filling first demoted an `hms` column to its seconds: `find` became `41400` where `value` stayed `11:30:00`. The lookup then matched nothing, and **a context that matches nothing is dropped from the build without a warning** — `Mitchell_2009` lost all 16 of its `time_of_day_approx` values that way, and nothing in the built database said so. Pinned by two tests in `test-process.R`, one of which asserts the id linkage rather than just the strings.
+
+The general form of the trap is worth keeping in mind: the contexts machinery compares strings that two different code paths produce, so any type that has more than one character representation can split them. Time is the case that bit; a date or a factor would behave the same way.
+
+## Gotcha: the pipeline does not invalidate on an engine change
+
+`_targets.R` declares the compilation config as file targets, so editing the schema or the definitions invalidates every dataset that read them. **The installed `responses.build` is not among them.** Reinstalling the package changes how every dataset is processed and invalidates nothing, so `tar_make()` reports everything up to date and the built database silently mixes output from two engine versions.
+
+After changing this package, invalidate before rebuilding — `tar_invalidate(everything())`, or the affected datasets plus `AusFizz*` if the change is narrow. This is how the `Mitchell_2009` fix above looked verified when it had not been.
+
 ## Open — curve fitting and the AusTraits handoff
 
 Not started, and deliberately after Stage 7. Once curves are addressable, fitting them (Vcmax25, Jmax25, Amax, P50, TLP) populates `traits`, and `export_traits_dataset()` writes that out for `austraits.build` to ingest. Nothing before Stage 2 should assume a particular fitting library.
