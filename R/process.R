@@ -285,6 +285,36 @@ dataset_process <- function(filename_data_raw,
   identifiers_tmp <- traits %>%
     dplyr::select(dplyr::all_of(c("dataset_id", "observation_id", identifiers$var_in)))
 
+  # A declared identifier that reaches here with nothing in it means the column
+  # was lost on the way, not that the study has no identifiers -- the rows are
+  # about to be filtered out and the table would come back empty with no
+  # explanation. #232 added a check for a `var_in` naming no column at all;
+  # this catches the column that exists but arrives empty.
+  if (is.data.frame(identifiers) && nrow(identifiers) > 0) {
+    all_empty <-
+      identifiers$var_in[
+        vapply(
+          identifiers$var_in,
+          function(v) all(is.na(identifiers_tmp[[v]])),
+          logical(1)
+        )
+      ]
+
+    if (length(all_empty) > 0) {
+      stop(
+        sprintf(
+          paste0(
+            "Dataset %s declares identifiers whose column is empty by the time the table is built: %s.\n",
+            "  The column exists but holds no values, so every identifier row would be dropped silently.\n",
+            "  Check that `custom_R_code` does not drop or overwrite it."
+          ),
+          dataset_id, paste(all_empty, collapse = ", ")
+        ),
+        call. = FALSE
+      )
+    }
+  }
+
   if (ncol(identifiers_tmp) >= 3) {
     identifiers_tmp <- identifiers_tmp %>%
       tidyr::pivot_longer(
@@ -1589,10 +1619,30 @@ process_parse_data <- function(data, dataset_id, metadata, contexts, schema, ide
            "temporal_context_id", "method_context_id")
     )
 
+  # One column can be claimed twice: `individual_id: code` in the `dataset:`
+  # block and `var_in: code` in `identifiers:`, which is the normal shape for a
+  # tagged plant -- the tag is both the individual within this dataset and the
+  # organism across datasets. `select()` *moves* a column, and a named entry
+  # wins, so the second claimant lost its column; `process_add_all_columns()`
+  # then recreated it as all-NA and the `!is.na()` filter dropped every row.
+  # The identifiers table came out empty with no error, which is the silent
+  # loss #232 closed for a *missing* `var_in`, reached instead by a consumed
+  # one.
+  #
+  # So copy the doubly-claimed columns back under their original names after
+  # the rename. `select()` cannot yield one column twice, and this keeps row
+  # order, since nothing between here and there filters.
+  doubly_claimed <-
+    intersect(unname(var_in[i]), c(contexts$var_in, identifiers$var_in))
+
   df <- data %>%
     # Next step selects and renames columns based on named vector
     dplyr::select(dplyr::any_of(c(var_in[i], v, contexts$var_in, identifiers$var_in))) %>% # Why select v? When would those ids ever be in the data?
     dplyr::mutate(dataset_id = dataset_id)
+
+  if (length(doubly_claimed) > 0) {
+    df[doubly_claimed] <- data[doubly_claimed]
+  }
 
   # Step 1b. Import any values that aren't columns of data
   vars <- c("entity_type", "value_type", "basis_of_value",

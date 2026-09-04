@@ -211,6 +211,58 @@ test_that("the build pipeline runs end to end", {
 })
 
 
+test_that("a column claimed by both the dataset block and identifiers survives", {
+  # `individual_id: code` plus `var_in: code` under identifiers is the normal
+  # shape for a tagged plant -- the tag is the individual within the dataset
+  # and the organism across datasets. `select()` moves a column and the named
+  # entry wins, so identifiers lost theirs, `process_add_all_columns()`
+  # recreated it as all-NA, and the table came back empty with no error.
+  metadata_path <- file.path(withr::local_tempdir(), "metadata.yml")
+  metadata <- readLines("examples/Test_2023_1/metadata.yml")
+
+  # Point the dataset block's `individual_id` at the column identifiers use
+  expect_true(any(grepl("^- var_in: herbarium_voucher$", metadata)))
+  metadata[grepl("^  individual_id:", metadata)] <-
+    "  individual_id: herbarium_voucher"
+  writeLines(metadata, metadata_path)
+
+  built <-
+    dataset_process(
+      "examples/Test_2023_1/data.csv",
+      dataset_configure(metadata_path, traits_definitions),
+      schema, resource_metadata, unit_conversions
+    )
+
+  # Both claims resolve: the identifier keeps its values, and the dataset
+  # block's `individual_id` is still populated from the same column
+  expect_gt(nrow(built$identifiers), 0)
+  expect_false(any(is.na(built$identifiers$identifier_value)))
+  expect_gt(sum(!is.na(built$measurements$individual_id)), 0)
+})
+
+
+test_that("an identifier column that arrives empty is an error, not an empty table", {
+  # The guard above catches a column consumed by the dataset block. This one
+  # catches every other route to the same silent loss -- here `custom_R_code`
+  # blanking the column -- because the failure mode is that the identifiers
+  # table comes back empty and nothing says why (#232).
+  metadata_path <- file.path(withr::local_tempdir(), "metadata.yml")
+  metadata <- readLines("examples/Test_2023_1/metadata.yml")
+  metadata[grepl("^\\s+LASA1000_dupe = LASA1000$", metadata)] <-
+    "        LASA1000_dupe = LASA1000,\n        herbarium_voucher = NA_character_"
+  writeLines(metadata, metadata_path)
+
+  expect_error(
+    dataset_process(
+      "examples/Test_2023_1/data.csv",
+      dataset_configure(metadata_path, traits_definitions),
+      schema, resource_metadata, unit_conversions
+    ),
+    "herbarium_voucher"
+  )
+})
+
+
 test_that("`individual_id` is one number per individual per dataset", {
   # It used to be numbered within each `taxon_name` and `population_id`, so the
   # same label recurred across taxa and populations and did not identify an
