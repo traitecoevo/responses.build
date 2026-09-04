@@ -211,6 +211,125 @@ test_that("the build pipeline runs end to end", {
 })
 
 
+test_that("a column claimed by both the dataset block and identifiers survives", {
+  # `individual_id: code` plus `var_in: code` under identifiers is the normal
+  # shape for a tagged plant -- the tag is the individual within the dataset
+  # and the organism across datasets. `select()` moves a column and the named
+  # entry wins, so identifiers lost theirs, `process_add_all_columns()`
+  # recreated it as all-NA, and the table came back empty with no error.
+  metadata_path <- file.path(withr::local_tempdir(), "metadata.yml")
+  metadata <- readLines("examples/Test_2023_1/metadata.yml")
+
+  # Point the dataset block's `individual_id` at the column identifiers use
+  expect_true(any(grepl("^- var_in: herbarium_voucher$", metadata)))
+  metadata[grepl("^  individual_id:", metadata)] <-
+    "  individual_id: herbarium_voucher"
+  writeLines(metadata, metadata_path)
+
+  built <-
+    dataset_process(
+      "examples/Test_2023_1/data.csv",
+      dataset_configure(metadata_path, traits_definitions),
+      schema, resource_metadata, unit_conversions
+    )
+
+  # Both claims resolve: the identifier keeps its values, and the dataset
+  # block's `individual_id` is still populated from the same column
+  expect_gt(nrow(built$identifiers), 0)
+  expect_false(any(is.na(built$identifiers$identifier_value)))
+  expect_gt(sum(!is.na(built$measurements$individual_id)), 0)
+})
+
+
+test_that("an identifier column that arrives empty is an error, not an empty table", {
+  # The guard above catches a column consumed by the dataset block. This one
+  # catches every other route to the same silent loss -- here `custom_R_code`
+  # blanking the column -- because the failure mode is that the identifiers
+  # table comes back empty and nothing says why (#232).
+  metadata_path <- file.path(withr::local_tempdir(), "metadata.yml")
+  metadata <- readLines("examples/Test_2023_1/metadata.yml")
+  metadata[grepl("^\\s+LASA1000_dupe = LASA1000$", metadata)] <-
+    "        LASA1000_dupe = LASA1000,\n        herbarium_voucher = NA_character_"
+  writeLines(metadata, metadata_path)
+
+  expect_error(
+    dataset_process(
+      "examples/Test_2023_1/data.csv",
+      dataset_configure(metadata_path, traits_definitions),
+      schema, resource_metadata, unit_conversions
+    ),
+    "herbarium_voucher"
+  )
+})
+
+
+test_that("`individual_id` is one number per individual per dataset", {
+  # It used to be numbered within each `taxon_name` and `population_id`, so the
+  # same label recurred across taxa and populations and did not identify an
+  # individual: across AusFizz's 35 datasets, 22,255 entities carried 3,844
+  # labels. Two taxa each with plants labelled 1 and 2 must come out as four
+  # individuals, not two.
+  built <-
+    dataset_process(
+      "examples/Test_2023_5/data.csv",
+      dataset_configure("examples/Test_2023_5/metadata.yml", traits_definitions),
+      schema, resource_metadata, unit_conversions
+    )
+
+  ind <- built$measurements %>% dplyr::filter(!is.na(individual_id))
+
+  # Guard the premise: this example really does span several taxa
+  expect_gt(dplyr::n_distinct(ind$taxon_name), 1)
+
+  expect_equal(
+    dplyr::n_distinct(ind$individual_id),
+    dplyr::n_distinct(paste(ind$taxon_name, ind$population_id, ind$individual_id))
+  )
+})
+
+
+test_that("`individual_id` does not depend on the row order of `data.csv`", {
+  # `process_generate_id()` numbers in first-appearance order unless asked to
+  # sort, and this call did not ask, so the labels moved with incidental row
+  # order -- the same defect fixed for the context ids. A build must not depend
+  # on the order its input happened to be written in.
+  # Test_2023_7 is used because one of its `(taxon_name, population_id)` groups
+  # holds eight individuals. In a fixture where every group holds one, they are
+  # all numbered "01" whatever the row order, and the test pins nothing.
+  build_from <- function(path) {
+    dataset_process(
+      path,
+      dataset_configure("examples/Test_2023_7/metadata.yml", traits_definitions),
+      schema, resource_metadata, unit_conversions
+    )$measurements
+  }
+
+  original <- build_from("examples/Test_2023_7/data.csv")
+
+  shuffled_path <- file.path(withr::local_tempdir(), "data.csv")
+  rows <- read_csv_char("examples/Test_2023_7/data.csv")
+  withr::with_seed(42, readr::write_csv(rows[sample(nrow(rows)), ], shuffled_path))
+  shuffled <- build_from(shuffled_path)
+
+  # Identify each individual by the readings it carries, not by its label --
+  # the label is what is under test, and the source label it came from is not
+  # kept in the built table. Comparing the set of labels would pass a
+  # permutation, since both builds hold "01" through "08" either way.
+  signature_of <- function(d) {
+    d %>%
+      dplyr::filter(!is.na(individual_id)) %>%
+      dplyr::group_by(taxon_name, population_id, individual_id) %>%
+      dplyr::summarise(
+        readings = paste(sort(paste(variable, value)), collapse = "|"),
+        .groups = "drop"
+      ) %>%
+      dplyr::arrange(taxon_name, population_id, individual_id)
+  }
+
+  expect_equal(signature_of(original), signature_of(shuffled))
+})
+
+
 test_that("`process_format_contexts` keeps a time column's clock values", {
   # A context whose values are derived from the data used to lose them whenever
   # the column read as `hms`. `ifelse()` drops the class of its arguments, so
