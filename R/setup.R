@@ -643,8 +643,12 @@ metadata_add_identifiers <- function(dataset_id, overwrite = FALSE,
 
   }
 
-    types <-
-      c("catalogNumber", "collectionID", "institutionCode", "institutionID", "materialSampleID", "occurrenceID")
+    # Read from the schema rather than restating it. The list was hardcoded
+    # here as well as declared in `identifier_type`, so adding a type meant
+    # editing two places and the two could disagree about what is allowed --
+    # `dataset_test()` validates against the schema, so a type offered here but
+    # missing there would be accepted at prompt time and rejected at test time.
+    types <- names(get_schema()[["identifier_type"]][["values"]])
 
     if (!is.null(user_responses)) {
       var_in <- user_responses[["var_in"]]

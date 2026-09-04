@@ -165,9 +165,9 @@ Test_2023_4,Melichrus procumbens,162,01,,file order,162,fruit_length,4,mm,specie
 Test_2023_4,Mischocarpus australis,163,01,,file order,163,fruit_width,8,mm,species,mode,,1,field_experiment,seedling,,,,01,Test_2003,,01,,,,Part of Test Dataset 4,01,04,Mischocarpus australis
 Test_2023_4,Muehlenbeckia adpressa,164,01,,file order,164,fruit_colour,black brown,,species,mode,,1,,seedling,,,,01,,,02,,,,Part of Test Dataset 4,01,04,Muehlenbeckia adpressa
 Test_2023_4,Myoporum boninense subsp. australe,165,01,,file order,165,fruit_length,10,mm,metapopulation,mode,measurement,1,literature,seedling,03,,,01,Test_2003,02,01,,,,From `australia_2` site,01,04,Myoporum boninense subsp. australe
-Test_2023_4,Nicotiana glauca,166,01,,recorded,166,leaf_photosynthesis,6,umol/m2/s,individual,raw,measurement,5,field_experiment,seedling,03,01,01,01,,02,02,,,,From `australia_2` site,01,04,Nicotiana glauca
-Test_2023_4,Nicotiana glauca,167,01,,recorded,167,leaf_photosynthesis,4,umol/m2/s,individual,raw,measurement,5,field_experiment,seedling,03,01,01,02,,02,02,,,,From `australia_2` site,01,04,Nicotiana glauca
-Test_2023_4,Nicotiana glauca,168,01,,recorded,168,leaf_photosynthesis,3.7,umol/m2/s,individual,raw,measurement,5,field_experiment,seedling,03,01,01,03,,02,02,,,,From `australia_2` site,01,04,Nicotiana glauca
+Test_2023_4,Nicotiana glauca,166,01,,recorded,166,leaf_photosynthesis,6,umol/m2/s,individual,raw,measurement,5,field_experiment,seedling,03,03,01,01,,02,02,,,,From `australia_2` site,01,04,Nicotiana glauca
+Test_2023_4,Nicotiana glauca,167,01,,recorded,167,leaf_photosynthesis,4,umol/m2/s,individual,raw,measurement,5,field_experiment,seedling,03,03,01,02,,02,02,,,,From `australia_2` site,01,04,Nicotiana glauca
+Test_2023_4,Nicotiana glauca,168,01,,recorded,168,leaf_photosynthesis,3.7,umol/m2/s,individual,raw,measurement,5,field_experiment,seedling,03,03,01,03,,02,02,,,,From `australia_2` site,01,04,Nicotiana glauca
 Test_2023_4,Nicotiana glauca,169,01,,file order,169,fruit_length,13,mm,species,mode,,1,,seedling,,,,01,,,01,,,,Part of Test Dataset 4,01,04,Nicotiana glauca
 Test_2023_4,Nicotiana goodspeedii,170,01,,file order,170,fruit_length,5,mm,species,mode,,1,,seedling,,,,01,,,01,,,,Part of Test Dataset 4,01,04,Nicotiana goodspeedii
 Test_2023_4,Oxalis corniculata,171,01,,file order,171,fruit_width,1.5,mm,species,mode,,1,field_experiment,seedling,,,,01,,,01,,,,Part of Test Dataset 4,01,04,Oxalis corniculata

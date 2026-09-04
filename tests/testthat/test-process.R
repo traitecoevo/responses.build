@@ -211,6 +211,73 @@ test_that("the build pipeline runs end to end", {
 })
 
 
+test_that("`individual_id` is one number per individual per dataset", {
+  # It used to be numbered within each `taxon_name` and `population_id`, so the
+  # same label recurred across taxa and populations and did not identify an
+  # individual: across AusFizz's 35 datasets, 22,255 entities carried 3,844
+  # labels. Two taxa each with plants labelled 1 and 2 must come out as four
+  # individuals, not two.
+  built <-
+    dataset_process(
+      "examples/Test_2023_5/data.csv",
+      dataset_configure("examples/Test_2023_5/metadata.yml", traits_definitions),
+      schema, resource_metadata, unit_conversions
+    )
+
+  ind <- built$measurements %>% dplyr::filter(!is.na(individual_id))
+
+  # Guard the premise: this example really does span several taxa
+  expect_gt(dplyr::n_distinct(ind$taxon_name), 1)
+
+  expect_equal(
+    dplyr::n_distinct(ind$individual_id),
+    dplyr::n_distinct(paste(ind$taxon_name, ind$population_id, ind$individual_id))
+  )
+})
+
+
+test_that("`individual_id` does not depend on the row order of `data.csv`", {
+  # `process_generate_id()` numbers in first-appearance order unless asked to
+  # sort, and this call did not ask, so the labels moved with incidental row
+  # order -- the same defect fixed for the context ids. A build must not depend
+  # on the order its input happened to be written in.
+  # Test_2023_7 is used because one of its `(taxon_name, population_id)` groups
+  # holds eight individuals. In a fixture where every group holds one, they are
+  # all numbered "01" whatever the row order, and the test pins nothing.
+  build_from <- function(path) {
+    dataset_process(
+      path,
+      dataset_configure("examples/Test_2023_7/metadata.yml", traits_definitions),
+      schema, resource_metadata, unit_conversions
+    )$measurements
+  }
+
+  original <- build_from("examples/Test_2023_7/data.csv")
+
+  shuffled_path <- file.path(withr::local_tempdir(), "data.csv")
+  rows <- read_csv_char("examples/Test_2023_7/data.csv")
+  withr::with_seed(42, readr::write_csv(rows[sample(nrow(rows)), ], shuffled_path))
+  shuffled <- build_from(shuffled_path)
+
+  # Identify each individual by the readings it carries, not by its label --
+  # the label is what is under test, and the source label it came from is not
+  # kept in the built table. Comparing the set of labels would pass a
+  # permutation, since both builds hold "01" through "08" either way.
+  signature_of <- function(d) {
+    d %>%
+      dplyr::filter(!is.na(individual_id)) %>%
+      dplyr::group_by(taxon_name, population_id, individual_id) %>%
+      dplyr::summarise(
+        readings = paste(sort(paste(variable, value)), collapse = "|"),
+        .groups = "drop"
+      ) %>%
+      dplyr::arrange(taxon_name, population_id, individual_id)
+  }
+
+  expect_equal(signature_of(original), signature_of(shuffled))
+})
+
+
 test_that("`process_format_contexts` keeps a time column's clock values", {
   # A context whose values are derived from the data used to lose them whenever
   # the column read as `hms`. `ifelse()` drops the class of its arguments, so

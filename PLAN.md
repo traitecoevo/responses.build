@@ -288,6 +288,25 @@ AusFizz has ~100 such call sites. **Moving those five to `Imports` breaks them**
 
 Upstream cannot fix this cheaply: `austraits.build` (970 call sites) and `ausinvertraits.build` (170) are bound by the same contract. **This fork serves only AusFizz**, and Stage 3 removes most of its call sites — so the blocker does not apply here. Order matters: explicit eval environment first, rebuild AusFizz and diff, *then* `Depends` → `Imports`, and diff again.
 
+## Invariant: an id segment identifies the thing it is named after
+
+`individual_id` is one number per individual per dataset, and `process_create_observation_id()` must keep it that way. It was numbered within each `taxon_name` and `population_id`, which made the label recur across groups — 22,255 AusFizz entities on 3,844 labels — so the column did not identify an individual and a per-plant `group_by` merged entities without saying so.
+
+Two things to preserve when touching that function:
+
+- **Number the key, not the label.** `(taxon_name, population_id, label)` is numbered, because the label alone is not the individual either: a dataset that restarts `Rep` at 1 in each treatment would have distinct plants collapse onto one id. Numbering the key is a refinement of the old grouping in every case, so it can only split, never merge. `NA` must stay `NA` through the key — `paste()` turns it into the string `"NA"` and numbers it as an individual.
+- **Sort.** `process_generate_id()` numbers in first-appearance order unless asked, so unsorted ids move with the row order of `data.csv`.
+
+Pinned by two tests in `test-process.R`, one for uniqueness and one that shuffles a fixture's rows. The shuffle test needs a fixture where one `(taxon, population)` group holds several individuals — `Test_2023_7` — because where every group holds one, they are all numbered `01` whatever the order and the test pins nothing. It must also identify each individual by the readings it carries, not by its label: comparing the label *set* passes a permutation, since both builds hold `01` through `08` either way.
+
+## Cross-dataset individual identity is declared, never inferred
+
+`individual_id` is a within-dataset segment and cannot carry identity between datasets. Where the same plant is measured by more than one — a tagged tree at a long-term site, or one study split by data type as `Drake_2015_a`/`_b`/`_c` is — the vehicle is an `organismID` in the `identifiers` table, written by a curator who knows the plants are the same.
+
+**Do not unify individuals on label equality.** Measured on AusFizz: of the individual labels shared between datasets at Richmond, only `Drake_2015_a`/`_b`/`_c`'s 244 are genuinely the same plants. The rest are `Curve_Id` integers colliding between unrelated experiments — and those are curve numbers, not plants at all, which is the smuggling noted in the corpus table above. Six of the seven apparent matches are coincidence, so inference would fabricate identity far more often than it found it.
+
+`identifiers` is keyed on `observation_id`, so an `organismID` reaches the individual through its observations rather than sitting on it directly. That is indirect but adequate; a per-individual identifier table is worth considering only if something needs it.
+
 ## Invariant: a context value is converted to character before anything fills it
 
 `process_format_contexts()` builds the `find`/`value` pair that `process_create_context_ids()` looks each data row up by. `find` is optional per value and gets filled from `value` where absent — and that fill must run on character, never on the column's own type.
