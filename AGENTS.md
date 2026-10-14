@@ -99,12 +99,12 @@ are documented centrally in
 **[austraits-meta](https://github.com/traitecoevo/austraits-meta)** — don't restate them here, read
 them there:
 
-- **Start with [`AGENTS.md`](https://github.com/traitecoevo/austraits-meta/blob/main/AGENTS.md)** —
+- **Start with [`AGENTS.md`](https://github.com/traitecoevo/austraits-meta/blob/master/AGENTS.md)** —
   pipeline order, who owns what, dependency direction (incl. the reversed `responses.build → austraits`
   edge), source-of-truth rules, cross-boundary artifacts, gotchas.
-- **[`dependencies.yml`](https://github.com/traitecoevo/austraits-meta/blob/main/dependencies.yml)** —
+- **[`dependencies.yml`](https://github.com/traitecoevo/austraits-meta/blob/master/dependencies.yml)** —
   machine-readable package graph + cross-boundary artifacts.
-- **[`governance/`](https://github.com/traitecoevo/austraits-meta/tree/main/governance)** —
+- **[`governance/`](https://github.com/traitecoevo/austraits-meta/tree/master/governance)** —
   label taxonomy, board #9 conventions, release playbooks, triage.
 
 ### Filing issues: **file them here**, even when they are about the data
@@ -122,7 +122,7 @@ Issues auto-add to [AusFizz #19](https://github.com/orgs/traitecoevo/projects/19
 family-wide [AusTraits #9](https://github.com/orgs/traitecoevo/projects/9). Board #19 mirrors #9's
 field conventions (Status, Priority, Area) and this repo's labels are identical to
 `traits.build`'s. Follow the
-[issue & labelling guide](https://github.com/traitecoevo/austraits-meta/blob/main/governance/issue-guide.md):
+[issue & labelling guide](https://github.com/traitecoevo/austraits-meta/blob/master/governance/issue-guide.md):
 pick one work-type label (`bug` / `task` / `epic`); Status, Priority and Area are set on the board,
 not as labels. Use `Area: data` on the board to separate compilation issues from engine ones.
 
