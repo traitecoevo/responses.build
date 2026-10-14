@@ -70,7 +70,7 @@ The data model and workflow concepts are shared with `traits.build` and are docu
 
 `responses.build` is part of the **AusTraits family** of packages maintained by the [AusTraits](https://austraits.org) team. See **[austraits.org](https://austraits.org)** for the project, the data, and the people behind it.
 
-Cross-package knowledge and governance live in [`austraits-meta`](https://github.com/traitecoevo/austraits-meta) — start with its [`AGENTS.md`](https://github.com/traitecoevo/austraits-meta/blob/main/AGENTS.md) and the [issue & labelling guide](https://github.com/traitecoevo/austraits-meta/blob/main/governance/issue-guide.md).
+Cross-package knowledge and governance live in [`austraits-meta`](https://github.com/traitecoevo/austraits-meta) — start with its [`AGENTS.md`](https://github.com/traitecoevo/austraits-meta/blob/master/AGENTS.md) and the [issue & labelling guide](https://github.com/traitecoevo/austraits-meta/blob/master/governance/issue-guide.md).
 
 ## Acknowledgements
 
